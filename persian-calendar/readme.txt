@@ -2,9 +2,9 @@
 Contributors: mohammadr3z
 Tags: شمسی, Jalali, Calendar, Shamsi, Gutenberg
 Requires at least: 5.4
-Tested up to: 6.9
+Tested up to: 7.0
 Requires PHP: 7.2
-Stable tag: 1.2.5.2
+Stable tag: 1.2.6
 License: GPL2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -49,6 +49,10 @@ No, the plugin is optimized and has minimal impact on performance.
 4. Persian digit conversion
 
 == Changelog ==
+
+= 1.2.6 =
+* Added compatibility with WordPress 7.0
+* Updated Gutenberg calendar theme styles and color schemes to match WordPress 7.0 admin theme colors (#3858e9)
 
 = 1.2.5 =
 * Fixed calendar weekday calculation inconsistency between mobile and desktop devices
