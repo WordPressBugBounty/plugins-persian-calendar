@@ -4,7 +4,7 @@ Tags: شمسی, Jalali, Calendar, Shamsi, Gutenberg
 Requires at least: 5.4
 Tested up to: 7.0
 Requires PHP: 7.2
-Stable tag: 1.3.0
+Stable tag: 1.3.1
 License: GPL2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -50,6 +50,9 @@ No, the plugin is optimized and has minimal impact on performance.
 4. Persian digit conversion
 
 == Changelog ==
+
+= 1.3.1 =
+* Fixed a critical issue where JetEngine integration caused Elementor page styles and system settings to not load properly by correctly ignoring system meta keys
 
 = 1.3.0 =
 * Added JetEngine Integration: Jalali calendar and date picker support for JetEngine meta-box date fields in admin, frontend, and Elementor editor

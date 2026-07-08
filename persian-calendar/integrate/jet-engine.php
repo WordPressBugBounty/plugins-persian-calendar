@@ -110,8 +110,9 @@ function persca_jet_engine_filter_post_metadata($value, $object_id, $meta_key, $
         return $value;
     }
 
-    // Skip internal WordPress meta keys
-    if (strpos($meta_key, '_wp_') === 0 || strpos($meta_key, '_edit_') === 0 || strpos($meta_key, '_oembed_') === 0) {
+    // Skip hidden/internal meta keys (like _elementor_data, _edit_lock, etc.)
+    // This prevents breaking Elementor styles and other system functionalities.
+    if (strpos($meta_key, '_') === 0) {
         return $value;
     }
 
