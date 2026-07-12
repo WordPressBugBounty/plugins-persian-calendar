@@ -184,6 +184,7 @@ final class PERSCA_Admin
             'enable_gutenberg_calendar' => true,
             'enable_classic_editor' => false,
             'enable_integration_jet_engine' => false,
+            'enable_integration_jet_form_builder' => false,
         ];
     }
 
@@ -333,6 +334,11 @@ final class PERSCA_Admin
                 'label' => __('JetEngine Integration', 'persian-calendar'),
                 'desc' => __('Enable Persian/Jalali calendar and date picker support in JetEngine fields.', 'persian-calendar'),
                 'icon' => 'dashicons-admin-plugins',
+            ],
+            'enable_integration_jet_form_builder' => [
+                'label' => __('JetFormBuilder Integration', 'persian-calendar'),
+                'desc' => __('Enable Persian/Jalali calendar and date picker support in JetFormBuilder forms.', 'persian-calendar'),
+                'icon' => 'dashicons-feedback',
             ],
         ];
 

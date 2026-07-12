@@ -4,7 +4,7 @@ Tags: شمسی, Jalali, Calendar, Shamsi, Gutenberg
 Requires at least: 5.4
 Tested up to: 7.0
 Requires PHP: 7.2
-Stable tag: 1.3.1
+Stable tag: 1.3.2
 License: GPL2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -23,6 +23,7 @@ This plugin converts your WordPress to the Jalali (Persian) calendar system. All
 *   **Week Start:** Week starts on Saturday
 *   **Persian Font:** Persian font for WordPress admin
 *   **JetEngine Integration:** Jalali calendar and date picker support for JetEngine fields
+*   **JetFormBuilder Integration:** Jalali calendar and date picker support for JetFormBuilder forms
 
 == Installation ==
 
@@ -50,6 +51,9 @@ No, the plugin is optimized and has minimal impact on performance.
 4. Persian digit conversion
 
 == Changelog ==
+
+= 1.3.2 =
+* Added JetFormBuilder Integration: Jalali calendar and date picker support for JetFormBuilder date and datetime fields on the frontend
 
 = 1.3.1 =
 * Fixed a critical issue where JetEngine integration caused Elementor page styles and system settings to not load properly by correctly ignoring system meta keys

@@ -66,6 +66,12 @@ class PERSCA_Plugin
                 include_once $integration_file;
             }
         }
+        if ($this->is_setting_enabled('enable_integration_jet_form_builder')) {
+            $integration_file = PERSCA_PLUGIN_DIR . 'integrate/jet-form-builder.php';
+            if (file_exists($integration_file)) {
+                include_once $integration_file;
+            }
+        }
         // Use classic editor if enabled
         if ($this->is_setting_enabled('enable_classic_editor')) {
             $this->disable_gutenberg_editor();

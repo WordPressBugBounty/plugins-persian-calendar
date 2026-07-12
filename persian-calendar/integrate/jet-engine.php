@@ -37,10 +37,10 @@ function persca_jet_engine_enqueue_assets() {
         PERSCA_PLUGIN_VERSION
     );
 
-    // Enqueue JetEngine integration overrides styles
+    // Enqueue Jet integration overrides styles (shared between JetEngine and JetFormBuilder)
     wp_enqueue_style(
-        'persca-integrate-jet-engine-styles',
-        PERSCA_PLUGIN_URL . 'assets/css/integrate-jet-engine.css',
+        'persca-integrate-jet-styles',
+        PERSCA_PLUGIN_URL . 'assets/css/integrate-jet.css',
         array('persian-calendar-gutenberg-styles'),
         PERSCA_PLUGIN_VERSION
     );
@@ -64,6 +64,11 @@ function persca_jet_engine_add_dependencies() {
     $target_scripts = array(
         'jet-engine-meta-boxes',
         'jet-engine-advanced-date-field',
+        'jet-engine-cct-list',
+        'jet-engine-cct-edit',
+        'jet-engine-cct-quick-edit',
+        'jet-engine-cct-relations',
+        'jet-engine-cct-query-dialog',
     );
     
     foreach ($target_scripts as $handle) {

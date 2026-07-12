@@ -303,6 +303,21 @@
       const isTodayMonth = (this.currentMonth === todayJm && this.currentYear === todayJy);
       const isSelectedMonth = (this.currentMonth === this.selectedDate.month && this.currentYear === this.selectedDate.year);
 
+      // Parse minDate and maxDate to Date objects at midnight
+      let minDateObj = null;
+      if (this.options.minDate === 'today' || this.options.minDate === 'current' || this.options.minDate === 'now') {
+        minDateObj = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      } else if (this.options.minDate instanceof Date) {
+        minDateObj = new Date(this.options.minDate.getFullYear(), this.options.minDate.getMonth(), this.options.minDate.getDate());
+      }
+
+      let maxDateObj = null;
+      if (this.options.maxDate === 'today' || this.options.maxDate === 'current' || this.options.maxDate === 'now') {
+        maxDateObj = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      } else if (this.options.maxDate instanceof Date) {
+        maxDateObj = new Date(this.options.maxDate.getFullYear(), this.options.maxDate.getMonth(), this.options.maxDate.getDate());
+      }
+
       const fragment = document.createDocumentFragment();
 
       // Empty days
@@ -319,8 +334,24 @@
         dayElement.setAttribute('data-day', day.toString());
         dayElement.textContent = toPersianDigits(day);
 
-        if (isTodayMonth && day === todayJd) dayElement.classList.add('today');
-        if (isSelectedMonth && day === this.selectedDate.day) dayElement.classList.add('selected');
+        // Check date limits
+        let isDisabled = false;
+        const [dgy, dgm, dgd] = jalaliToGregorian(this.currentYear, this.currentMonth, day);
+        const currentDayDate = new Date(dgy, dgm - 1, dgd);
+
+        if (minDateObj && currentDayDate < minDateObj) {
+          isDisabled = true;
+        }
+        if (maxDateObj && currentDayDate > maxDateObj) {
+          isDisabled = true;
+        }
+
+        if (isDisabled) {
+          dayElement.classList.add('disabled');
+        } else {
+          if (isTodayMonth && day === todayJd) dayElement.classList.add('today');
+          if (isSelectedMonth && day === this.selectedDate.day) dayElement.classList.add('selected');
+        }
 
         fragment.appendChild(dayElement);
       }
@@ -331,7 +362,7 @@
     attachEventListeners() {
       this.container.addEventListener('click', (e) => {
         const target = e.target;
-        if (target.matches('.persian-calendar-day:not(.empty)')) {
+        if (target.matches('.persian-calendar-day:not(.empty):not(.disabled)')) {
           const day = safeParseInt(target.dataset.day, 1, 1, 31);
           if (isValidJalaliDate(this.currentYear, this.currentMonth, day)) {
             this.selectDate(this.currentYear, this.currentMonth, day);
