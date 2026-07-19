@@ -60,16 +60,19 @@ class PERSCA_Plugin
         $this->settings = wp_parse_args($saved_settings, PERSCA_Admin::get_default_settings());
 
         // Load integrations
-        if ($this->is_setting_enabled('enable_integration_jet_engine')) {
-            $integration_file = PERSCA_PLUGIN_DIR . 'integrate/jet-engine.php';
-            if (file_exists($integration_file)) {
-                include_once $integration_file;
-            }
-        }
-        if ($this->is_setting_enabled('enable_integration_jet_form_builder')) {
-            $integration_file = PERSCA_PLUGIN_DIR . 'integrate/jet-form-builder.php';
-            if (file_exists($integration_file)) {
-                include_once $integration_file;
+        $integrations = [
+            'enable_integration_jet_engine'        => 'jet-engine.php',
+            'enable_integration_jet_form_builder'  => 'jet-form-builder.php',
+            'enable_integration_jet_booking'       => 'jet-booking.php',
+            'enable_integration_jet_smart_filters' => 'jet-smart-filters.php',
+        ];
+
+        foreach ($integrations as $setting => $file) {
+            if ($this->is_setting_enabled($setting)) {
+                $integration_file = PERSCA_PLUGIN_DIR . 'integrate/' . $file;
+                if (file_exists($integration_file)) {
+                    include_once $integration_file;
+                }
             }
         }
         // Use classic editor if enabled
@@ -94,9 +97,6 @@ class PERSCA_Plugin
             add_filter('date_i18n', [$this, 'filter_date_i18n'], 10, 4);
             add_filter('wp_date', [$this, 'filter_wp_date'], 10, 4);
 
-            // Human time diff (relative time: "x minutes ago")
-            add_filter('human_time_diff', [$this, 'filter_human_time_diff'], 10, 4);
-
             // Comment dates
             add_filter('get_comment_date', [$this, 'filter_comment_date'], 10, 3);
             add_filter('get_comment_time', [$this, 'filter_comment_time'], 10, 5);
@@ -104,7 +104,7 @@ class PERSCA_Plugin
             // Post modified date/time
             add_filter('get_the_modified_date', [$this, 'filter_modified_date'], 10, 3);
             add_filter('get_the_modified_time', [$this, 'filter_modified_time'], 10, 3);
-            add_filter('get_post_time', [$this, 'filter_get_post_time'], 10, 3);
+            add_filter('get_post_time', [$this, 'filter_get_post_time'], 10, 4);
 
             // Admin date filter dropdown (render Jalali dates server-side)
             add_action('restrict_manage_posts', [$this, 'render_jalali_months_dropdown'], 5);
@@ -181,52 +181,6 @@ class PERSCA_Plugin
         return $this->date->format_date((string) $format, (int) $timestamp, $convert_digits);
     }
 
-    /**
-     * Filter human_time_diff for Persian relative time strings.
-     * 
-     * Converts English time units to Persian equivalents for relative
-     * time displays like "2 hours ago" -> "۲ ساعت پیش".
-     * 
-     * @param string $since The human-readable time difference.
-     * @param int    $diff  The difference in seconds.
-     * @param int    $from  Unix timestamp from which the difference begins.
-     * @param int    $to    Unix timestamp to end the time difference.
-     * @return string Persian formatted time difference.
-     */
-    public function filter_human_time_diff($since, $diff, $from, $to)
-    {
-        $convert_digits = $this->is_setting_enabled('enable_persian_digits');
-
-        // Persian time unit translations
-        $units = [
-            'second' => 'ثانیه',
-            'seconds' => 'ثانیه',
-            'min' => 'دقیقه',
-            'mins' => 'دقیقه',
-            'minute' => 'دقیقه',
-            'minutes' => 'دقیقه',
-            'hour' => 'ساعت',
-            'hours' => 'ساعت',
-            'day' => 'روز',
-            'days' => 'روز',
-            'week' => 'هفته',
-            'weeks' => 'هفته',
-            'month' => 'ماه',
-            'months' => 'ماه',
-            'year' => 'سال',
-            'years' => 'سال',
-        ];
-
-        foreach ($units as $en => $fa) {
-            $since = str_ireplace($en, $fa, $since);
-        }
-
-        if ($convert_digits) {
-            $since = $this->date->to_persian_digits($since);
-        }
-
-        return $since;
-    }
 
     /**
      * Filter comment date for Jalali conversion.
@@ -319,7 +273,7 @@ class PERSCA_Plugin
      * @param bool   $gmt    Whether to use GMT timezone.
      * @return string Jalali formatted time.
      */
-    public function filter_get_post_time($time, $format, $gmt)
+    public function filter_get_post_time($time, $format, $gmt, $post = null)
     {
         // Don't convert timestamp formats - WordPress needs numeric values
         // 'U' = Unix timestamp, 'G' = 24-hour without leading zeros
@@ -327,7 +281,7 @@ class PERSCA_Plugin
             return $time;
         }
 
-        $post = get_post();
+        $post = $post ? get_post($post) : get_post();
         if (! $post) {
             return $time;
         }
@@ -747,11 +701,20 @@ class PERSCA_Plugin
             return;
         }
 
+        // Enqueue main Persian calendar component (shared date converter)
+        wp_enqueue_script(
+            'persian-calendar-main',
+            PERSCA_PLUGIN_URL . 'assets/js/persian-calendar.js',
+            array(),
+            PERSCA_PLUGIN_VERSION,
+            true
+        );
+
         // Enqueue admin timewrap script
         wp_enqueue_script(
             'persian-calendar-admin-timewrap',
             PERSCA_PLUGIN_URL . 'assets/js/admin-timewrap.js',
-            array('jquery'),
+            array('jquery', 'persian-calendar-main'),
             PERSCA_PLUGIN_VERSION,
             true
         );

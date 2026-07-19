@@ -20,10 +20,11 @@
 }
 
 .persian-calendar-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin: 0;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #1a1a1a !important;
+  margin: 0 !important;
+  line-height: 1.2 !important;
 }
 
 .persian-calendar-now-btn {
@@ -380,6 +381,33 @@ select.persian-calendar-month:focus {
 
 .persian-calendar-day.selected:hover {
   color: #fff;
+}
+
+.persian-calendar-day.range-start,
+.persian-calendar-day.range-end {
+  background: #3858e9;
+  color: white;
+  font-weight: 500;
+}
+
+.persian-calendar-day.range-start {
+  border-top-right-radius: 50%;
+  border-bottom-right-radius: 50%;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.persian-calendar-day.range-end {
+  border-top-left-radius: 50%;
+  border-bottom-left-radius: 50%;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.persian-calendar-day.in-range {
+  background: rgba(56, 88, 233, 0.1);
+  color: #1e1e1e;
+  border-radius: 0;
 }
 
 .persian-calendar-day:not(.empty):focus,

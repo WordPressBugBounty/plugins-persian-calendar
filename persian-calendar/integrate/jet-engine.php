@@ -81,11 +81,66 @@ function persca_jet_engine_add_dependencies() {
     }
 }
 
-// Hook into get_post_metadata to format date custom fields on the frontend
-add_filter('get_post_metadata', 'persca_jet_engine_filter_post_metadata', 10, 4);
+function persca_get_jet_engine_date_meta_keys() {
+    static $keys = null;
+    if ($keys !== null) {
+        return $keys;
+    }
+    
+    $keys = array();
+    
+    if (function_exists('jet_engine') && !empty(jet_engine()->meta_boxes)) {
+        $registered_fields = jet_engine()->meta_boxes->get_registered_fields();
+        
+        $process_fields = function($fields) use (&$process_fields, &$keys) {
+            if (!is_array($fields)) return;
+            foreach ($fields as $field) {
+                if (empty($field['name']) || empty($field['type'])) continue;
+                
+                if (in_array($field['type'], array('date', 'datetime-local', 'datetime', 'time'), true)) {
+                    $keys[] = $field['name'];
+                } elseif ($field['type'] === 'repeater' && !empty($field['repeater-fields'])) {
+                    $has_date = false;
+                    foreach ($field['repeater-fields'] as $subfield) {
+                        if (!empty($subfield['type']) && in_array($subfield['type'], array('date', 'datetime-local', 'datetime', 'time'), true)) {
+                            $has_date = true;
+                            break;
+                        }
+                    }
+                    if ($has_date) {
+                        $keys[] = $field['name'];
+                    }
+                }
+            }
+        };
+        
+        if (is_array($registered_fields)) {
+            foreach ($registered_fields as $object_type => $fields) {
+                $process_fields($fields);
+            }
+        }
+    }
+    
+    $keys = apply_filters('persca_jet_engine_date_meta_keys', $keys);
+    $keys = array_unique($keys);
+    
+    return $keys;
+}
 
-function persca_jet_engine_filter_post_metadata($value, $object_id, $meta_key, $single) {
-    if ($value !== null) {
+// Hook into JetEngine metadata filters to format date custom fields on the frontend
+add_filter('jet-engine/listing/data/get-post-meta', 'persca_jet_engine_filter_listing_meta', 10, 3);
+add_filter('jet-engine/listing/data/get-term-meta', 'persca_jet_engine_filter_listing_meta', 10, 3);
+add_filter('jet-engine/listing/data/get-user-meta', 'persca_jet_engine_filter_listing_meta', 10, 3);
+add_filter('jet-engine/listing/data/get-comment-meta', 'persca_jet_engine_filter_listing_meta', 10, 3);
+
+// Hook into JetEngine dynamic field output value to format dates to Jalali
+add_filter('jet-engine/listings/dynamic-field/field-value', 'persca_jet_engine_dynamic_field_value', 10, 2);
+
+// Hook into JetEngine custom-value filter to intercept post-fetch values for object properties and meta fields
+add_filter('jet-engine/listings/dynamic-field/custom-value', 'persca_jet_engine_dynamic_field_custom_value', 10, 3);
+
+function persca_jet_engine_filter_listing_meta($value, $key, $object_id) {
+    if ($value === null || $value === '') {
         return $value;
     }
 
@@ -94,13 +149,12 @@ function persca_jet_engine_filter_post_metadata($value, $object_id, $meta_key, $
         return $value;
     }
 
-    // Only convert on the frontend, but allow inside Elementor editor/preview
-    if (is_admin()) {
+    // Only convert on the frontend, but allow inside Elementor editor/preview or AJAX requests
+    if (is_admin() && !wp_doing_ajax()) {
         $is_elementor = false;
         if (
             (isset($_GET['action']) && $_GET['action'] === 'elementor') ||
-            isset($_GET['elementor-preview']) ||
-            (defined('DOING_AJAX') && DOING_AJAX && isset($_REQUEST['action']) && strpos($_REQUEST['action'], 'elementor') === 0)
+            isset($_GET['elementor-preview'])
         ) {
             $is_elementor = true;
         }
@@ -109,15 +163,9 @@ function persca_jet_engine_filter_post_metadata($value, $object_id, $meta_key, $
         }
     }
 
-    // Prevent infinite recursion loops
-    static $running = false;
-    if ($running) {
-        return $value;
-    }
-
-    // Skip hidden/internal meta keys (like _elementor_data, _edit_lock, etc.)
-    // This prevents breaking Elementor styles and other system functionalities.
-    if (strpos($meta_key, '_') === 0) {
+    // ONLY intercept meta keys that are dynamically registered as date/datetime fields in JetEngine
+    $jet_date_keys = persca_get_jet_engine_date_meta_keys();
+    if (!in_array($key, $jet_date_keys, true)) {
         return $value;
     }
 
@@ -125,21 +173,14 @@ function persca_jet_engine_filter_post_metadata($value, $object_id, $meta_key, $
      * Filter whether a specific meta key should be converted to Jalali.
      *
      * @param bool   $should_convert Whether to convert this meta key. Default true.
-     * @param string $meta_key       The meta key being read.
+     * @param string $key            The meta key being read.
      * @param int    $object_id      The post ID.
      */
-    if (!apply_filters('persca_jet_engine_should_convert_meta', true, $meta_key, $object_id)) {
+    if (!apply_filters('persca_jet_engine_should_convert_meta', true, $key, $object_id)) {
         return $value;
     }
 
-    $running = true;
-    try {
-        $raw_val = get_post_meta($object_id, $meta_key, $single);
-    } finally {
-        $running = false;
-    }
-
-    return persca_jet_engine_convert_meta_value($raw_val);
+    return persca_jet_engine_convert_meta_value($value);
 }
 
 function persca_jet_engine_convert_meta_value($val) {
@@ -174,10 +215,15 @@ function persca_jet_engine_convert_meta_value($val) {
         $d = intval($matches[3]);
         $hh = intval($matches[4]);
         $mi = intval($matches[5]);
-        if (checkdate($m, $d, $y)) {
+        $ss = isset($matches[6]) ? intval($matches[6]) : null;
+        if (checkdate($m, $d, $y) && $hh >= 0 && $hh <= 23 && $mi >= 0 && $mi <= 59 && ($ss === null || ($ss >= 0 && $ss <= 59))) {
             $converter = new PERSCA_Date_Converter();
             $jalali = $converter->gregorian_to_jalali($y, $m, $d);
-            $j_date = sprintf('%04d/%02d/%02d %02d:%02d', $jalali['y'], $jalali['m'], $jalali['d'], $hh, $mi);
+            if ($ss !== null) {
+                $j_date = sprintf('%04d/%02d/%02d %02d:%02d:%02d', $jalali['y'], $jalali['m'], $jalali['d'], $hh, $mi, $ss);
+            } else {
+                $j_date = sprintf('%04d/%02d/%02d %02d:%02d', $jalali['y'], $jalali['m'], $jalali['d'], $hh, $mi);
+            }
             return persca_jet_engine_maybe_convert_digits($j_date);
         }
     }
@@ -186,6 +232,126 @@ function persca_jet_engine_convert_meta_value($val) {
 }
 
 function persca_jet_engine_maybe_convert_digits($str) {
+    $settings = get_option('persca_options', array());
+    $defaults = class_exists('PERSCA_Admin') ? PERSCA_Admin::get_default_settings() : array('enable_persian_digits' => true);
+    $settings = wp_parse_args($settings, $defaults);
+
+    if (!empty($settings['enable_persian_digits'])) {
+        $converter = new PERSCA_Date_Converter();
+        return $converter->to_persian_digits($str);
+    }
+
     return $str;
+}
+
+function persca_jet_engine_dynamic_field_value($value, $settings = null) {
+    if ($value === null || $value === '') {
+        return $value;
+    }
+
+    // Do not convert during REST API, WP-CLI, or XML-RPC requests
+    if ((defined('REST_REQUEST') && REST_REQUEST) || (defined('WP_CLI') && WP_CLI) || (defined('XMLRPC_REQUEST') && XMLRPC_REQUEST)) {
+        return $value;
+    }
+
+    // Only convert on the frontend, but allow inside Elementor editor/preview or AJAX requests
+    if (is_admin() && !wp_doing_ajax()) {
+        $is_elementor = false;
+        if (
+            (isset($_GET['action']) && $_GET['action'] === 'elementor') ||
+            isset($_GET['elementor-preview'])
+        ) {
+            $is_elementor = true;
+        }
+        if (!$is_elementor) {
+            return $value;
+        }
+    }
+
+    // Prevent infinite recursion loops
+    static $running = false;
+    if ($running) {
+        return $value;
+    }
+
+    $running = true;
+    try {
+        $value = persca_jet_engine_convert_meta_value($value);
+    } finally {
+        $running = false;
+    }
+
+    return $value;
+}
+
+function persca_jet_engine_dynamic_field_custom_value($value, $settings, $widget) {
+    if (is_admin() && !wp_doing_ajax()) {
+        $is_elementor = false;
+        if (
+            (isset($_GET['action']) && $_GET['action'] === 'elementor') ||
+            isset($_GET['elementor-preview'])
+        ) {
+            $is_elementor = true;
+        }
+        if (!$is_elementor) {
+            return $value;
+        }
+    }
+
+    // If the date callback is active, let JetEngine format it.
+    // Our date_i18n and wp_date hooks will convert it correctly.
+    if (persca_jet_engine_is_date_callback_active($settings)) {
+        return $value;
+    }
+
+    // Prevent infinite recursion loops
+    static $running = false;
+    if ($running) {
+        return $value;
+    }
+
+    $running = true;
+    try {
+        // Temporarily remove ourselves to avoid infinite recursion when fetching the field content
+        remove_filter('jet-engine/listings/dynamic-field/custom-value', 'persca_jet_engine_dynamic_field_custom_value', 10);
+        $result = $widget->get_field_content($settings);
+    } catch (\Throwable $e) {
+        $result = $value;
+    } finally {
+        add_filter('jet-engine/listings/dynamic-field/custom-value', 'persca_jet_engine_dynamic_field_custom_value', 10, 3);
+        $running = false;
+    }
+
+    return persca_jet_engine_convert_meta_value($result);
+}
+
+function persca_jet_engine_is_date_callback_active($settings) {
+    if (empty($settings) || !is_array($settings)) {
+        return false;
+    }
+
+    $is_filtered = isset($settings['dynamic_field_filter']) ? $settings['dynamic_field_filter'] : false;
+    $is_filtered = filter_var($is_filtered, FILTER_VALIDATE_BOOLEAN);
+
+    if (!$is_filtered) {
+        return false;
+    }
+
+    $callback = isset($settings['filter_callback']) ? $settings['filter_callback'] : '';
+    if ($callback === 'format_date') {
+        return true;
+    }
+
+    $callbacks = isset($settings['filter_callbacks']) ? $settings['filter_callbacks'] : array();
+    if (is_array($callbacks)) {
+        foreach ($callbacks as $cb_data) {
+            $cb = isset($cb_data['filter_callback']) ? $cb_data['filter_callback'] : '';
+            if ($cb === 'format_date') {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
 

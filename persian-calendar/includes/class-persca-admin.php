@@ -164,6 +164,31 @@ final class PERSCA_Admin
             // Sanitize and validate each option
             $value = isset($input[$key]) ? sanitize_key($input[$key]) : '';
             $out[$key] = ! empty($value) ? (bool) $value : false;
+
+            // Force integration options to false if their respective plugins are not active
+            if ($key === 'enable_integration_jet_engine' && ! class_exists('Jet_Engine')) {
+                $out[$key] = false;
+            }
+            if ($key === 'enable_integration_jet_form_builder' && ! function_exists('jet_form_builder')) {
+                $out[$key] = false;
+            }
+            if ($key === 'enable_integration_jet_booking' && ! (class_exists('JET_ABAF\\Plugin') || defined('JET_ABAF_VERSION'))) {
+                $out[$key] = false;
+            }
+            if ($key === 'enable_integration_jet_smart_filters' && ! class_exists('Jet_Smart_Filters')) {
+                $out[$key] = false;
+            }
+        }
+
+        // Disable Gutenberg calendar if Classic Editor is enabled
+        if (! empty($out['enable_classic_editor'])) {
+            $out['enable_gutenberg_calendar'] = false;
+        }
+
+        // Auto-enable Gutenberg calendar when Classic Editor is turned off
+        $previous = get_option(self::OPTIONS_KEY, $defaults);
+        if (! empty($previous['enable_classic_editor']) && empty($out['enable_classic_editor'])) {
+            $out['enable_gutenberg_calendar'] = true;
         }
 
         return wp_parse_args($out, $defaults);
@@ -185,6 +210,8 @@ final class PERSCA_Admin
             'enable_classic_editor' => false,
             'enable_integration_jet_engine' => false,
             'enable_integration_jet_form_builder' => false,
+            'enable_integration_jet_booking' => false,
+            'enable_integration_jet_smart_filters' => false,
         ];
     }
 
@@ -220,14 +247,19 @@ final class PERSCA_Admin
         $icon = isset($args['icon']) ? '<span class="dashicons ' . esc_attr($args['icon']) . '"></span>' : '<span class="dashicons dashicons-admin-generic"></span>';
         $label = isset($args['label']) ? $args['label'] : '';
 
-        // Check if this field should be disabled by another field
+        // Check if this field should be disabled by another field or a custom condition
         $disabled_by = isset($args['disabled_by']) ? $args['disabled_by'] : null;
         $is_disabled = false;
         $disabled_message = '';
 
-        if ($disabled_by && isset($opts[$disabled_by['option']]) && $opts[$disabled_by['option']]) {
-            $is_disabled = true;
-            $disabled_message = isset($disabled_by['message']) ? $disabled_by['message'] : '';
+        if ($disabled_by) {
+            if (isset($disabled_by['active']) && $disabled_by['active']) {
+                $is_disabled = true;
+                $disabled_message = isset($disabled_by['message']) ? $disabled_by['message'] : '';
+            } elseif (isset($disabled_by['option']) && isset($opts[$disabled_by['option']]) && $opts[$disabled_by['option']]) {
+                $is_disabled = true;
+                $disabled_message = isset($disabled_by['message']) ? $disabled_by['message'] : '';
+            }
         }
 
         $row_class = 'persian-calendar-settings-row';
@@ -237,31 +269,34 @@ final class PERSCA_Admin
 
         echo '<div class="' . esc_attr($row_class) . '">';
 
-        // Overlay for disabled state
         if ($is_disabled) {
-            echo '<div class="persian-calendar-disabled-overlay">';
-            echo '<span class="dashicons dashicons-lock"></span>';
-            echo '<span class="persian-calendar-disabled-message">' . esc_html($disabled_message) . '</span>';
-            echo '</div>';
+            $icon = '<span class="dashicons dashicons-lock"></span>';
         }
 
-        echo '<div class="persian-calendar-settings-icon">' . wp_kses_post($icon) . '</div>';
+        echo '<div class="persian-calendar-settings-icon' . ($is_disabled ? ' persian-calendar-settings-icon-disabled' : '') . '">' . wp_kses_post($icon) . '</div>';
         echo '<div class="persian-calendar-settings-content">';
         echo '<div class="persian-calendar-settings-title">' . esc_html($label) . '</div>';
-        echo '<p class="persian-calendar-settings-description">' . esc_html($args['desc']) . '</p>';
-        echo '</div>';
+        if ($is_disabled) {
+            echo '<p class="persian-calendar-settings-description persian-calendar-disabled-warning">' . esc_html($disabled_message) . '</p>';
+        } else {
+            echo '<p class="persian-calendar-settings-description">' . esc_html($args['desc']) . '</p>';
+        }
+        echo '</div>'; // Closes persian-calendar-settings-content
+
+        // Always render the control, but add disabled attribute if needed
         echo '<div class="persian-calendar-settings-control">';
-        echo '<label class="persian-calendar-toggle">';
+        echo '<label class="persian-calendar-toggle' . ($is_disabled ? ' persian-calendar-toggle-disabled' : '') . '">';
         printf(
             '<input type="checkbox" id="%1$s" name="' . esc_attr(self::OPTIONS_KEY) . '[%1$s]" value="1" %2$s %3$s/>',
             esc_attr($key),
-            checked($this->is_option_enabled($opts, $key), true, false),
-            $is_disabled ? 'disabled' : ''
+            checked(!$is_disabled && $this->is_option_enabled($opts, $key), true, false),
+            $is_disabled ? 'disabled="disabled"' : ''
         );
         echo '<span class="persian-calendar-slider"></span>';
         echo '</label>';
         echo '</div>';
-        echo '</div>';
+
+        echo '</div>'; // Closes main row
     }
 
     /**
@@ -291,6 +326,10 @@ final class PERSCA_Admin
                 'label' => __('Gutenberg Calendar', 'persian-calendar'),
                 'desc' => __('Integrate Persian calendar functionality within the Gutenberg editor.', 'persian-calendar'),
                 'icon' => 'dashicons-edit',
+                'disabled_by' => [
+                    'option'  => 'enable_classic_editor',
+                    'message' => __('Since the Classic Editor is active, the Gutenberg editor and its calendar integration are disabled.', 'persian-calendar'),
+                ],
             ],
             'enable_classic_editor' => [
                 'label' => __('Classic Editor', 'persian-calendar'),
@@ -329,16 +368,47 @@ final class PERSCA_Admin
      */
     private function render_integration_fields(): void
     {
+        $jet_engine_active = class_exists('Jet_Engine');
+        $jet_form_builder_active = function_exists('jet_form_builder');
+        $jet_booking_active = class_exists('JET_ABAF\\Plugin') || defined('JET_ABAF_VERSION');
+        $jet_smart_filters_active = class_exists('Jet_Smart_Filters');
+
         $fields = [
             'enable_integration_jet_engine' => [
                 'label' => __('JetEngine Integration', 'persian-calendar'),
                 'desc' => __('Enable Persian/Jalali calendar and date picker support in JetEngine fields.', 'persian-calendar'),
                 'icon' => 'dashicons-admin-plugins',
+                'disabled_by' => !$jet_engine_active ? [
+                    'active'  => true,
+                    'message' => __('To use this integration, JetEngine plugin must be installed and active.', 'persian-calendar'),
+                ] : null,
             ],
             'enable_integration_jet_form_builder' => [
                 'label' => __('JetFormBuilder Integration', 'persian-calendar'),
                 'desc' => __('Enable Persian/Jalali calendar and date picker support in JetFormBuilder forms.', 'persian-calendar'),
                 'icon' => 'dashicons-feedback',
+                'disabled_by' => !$jet_form_builder_active ? [
+                    'active'  => true,
+                    'message' => __('To use this integration, JetFormBuilder plugin must be installed and active.', 'persian-calendar'),
+                ] : null,
+            ],
+            'enable_integration_jet_booking' => [
+                'label' => __('JetBooking Integration', 'persian-calendar'),
+                'desc' => __('Enable Persian/Jalali calendar and date picker support in JetBooking check-in/out fields and admin panels.', 'persian-calendar'),
+                'icon' => 'dashicons-building',
+                'disabled_by' => !$jet_booking_active ? [
+                    'active'  => true,
+                    'message' => __('To use this integration, JetBooking plugin must be installed and active.', 'persian-calendar'),
+                ] : null,
+            ],
+            'enable_integration_jet_smart_filters' => [
+                'label' => __('JetSmartFilters Integration', 'persian-calendar'),
+                'desc' => __('Enable Persian/Jalali calendar and date picker support in JetSmartFilters widgets and blocks.', 'persian-calendar'),
+                'icon' => 'dashicons-filter',
+                'disabled_by' => !$jet_smart_filters_active ? [
+                    'active'  => true,
+                    'message' => __('To use this integration, JetSmartFilters plugin must be installed and active.', 'persian-calendar'),
+                ] : null,
             ],
         ];
 

@@ -20,10 +20,11 @@
 }
 
 .persian-calendar-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin: 0;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #1a1a1a !important;
+  margin: 0 !important;
+  line-height: 1.2 !important;
 }
 
 .persian-calendar-now-btn {
@@ -408,6 +409,35 @@ select.persian-calendar-month:focus {
   opacity: 0.5 !important;
 }
 
+/* Range Picker Strip styling */
+.persian-calendar-day.in-range {
+  background-color: #f7f9fe !important;
+  color: #3858e9 !important;
+  border-radius: 0 !important;
+}
+
+.persian-calendar-day.range-start {
+  background-color: #3858e9 !important;
+  color: #ffffff !important;
+  border-top-right-radius: 50% !important;
+  border-bottom-right-radius: 50% !important;
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+}
+
+.persian-calendar-day.range-end {
+  background-color: #3858e9 !important;
+  color: #ffffff !important;
+  border-top-left-radius: 50% !important;
+  border-bottom-left-radius: 50% !important;
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+}
+
+.persian-calendar-day.range-start.range-end {
+  border-radius: 50% !important;
+}
+
 /* Responsive Design */
 @media (max-width: 480px) {
   .persian-calendar-wrapper {
@@ -515,4 +545,21 @@ select.persian-calendar-month:focus {
   overflow: hidden !important;
   position: absolute !important;
   z-index: -1 !important;
+}
+
+/* Animation for opening the calendar popup */
+.persian-calendar-popup,
+.persca-jalali-datepicker-popup {
+    -webkit-animation: fpFadeInDown 300ms cubic-bezier(0.23, 1, 0.32, 1);
+    animation: fpFadeInDown 300ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@-webkit-keyframes fpFadeInDown {
+    from { opacity: 0; -webkit-transform: translate3d(0, -20px, 0); transform: translate3d(0, -20px, 0); }
+    to { opacity: 1; -webkit-transform: translate3d(0, 0, 0); transform: translate3d(0, 0, 0); }
+}
+
+@keyframes fpFadeInDown {
+    from { opacity: 0; transform: translate3d(0, -20px, 0); }
+    to { opacity: 1; transform: translate3d(0, 0, 0); }
 }

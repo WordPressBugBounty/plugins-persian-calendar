@@ -409,4 +409,30 @@ class PERSCA_Date_Converter
         $fa = ['۰', '۱', '۲', '۳', '۴', '۵', '۶', '۷', '۸', '۹'];
         return str_replace($en, $fa, $input);
     }
+
+    /**
+     * Check if a Jalali date is valid.
+     * 
+     * @param int $jy Jalali year.
+     * @param int $jm Jalali month.
+     * @param int $jd Jalali day.
+     * @return bool True if valid, false otherwise.
+     */
+    public function is_valid_jalali(int $jy, int $jm, int $jd): bool
+    {
+        if ($jy < 1 || $jy > 3000 || $jm < 1 || $jm > 12 || $jd < 1) {
+            return false;
+        }
+
+        if ($jm <= 6) {
+            $max_day = 31;
+        } elseif ($jm <= 11) {
+            $max_day = 30;
+        } else {
+            $leap_remainders = [1, 5, 9, 13, 17, 22, 26, 30];
+            $max_day = in_array($jy % 33, $leap_remainders) ? 30 : 29;
+        }
+
+        return $jd <= $max_day;
+    }
 }
