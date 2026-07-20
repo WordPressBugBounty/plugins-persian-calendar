@@ -14,6 +14,36 @@
         ).length > 0;
     }
 
+    // Check if an element or options represents a time-only field
+    function isTimeField($el, options) {
+        if (!$el || !$el.length) return false;
+        const type = ($el.attr('type') || '').toLowerCase();
+        if (type === 'time') {
+            return true;
+        }
+        const dataType = ($el.attr('data-type') || $el.data('type') || '').toLowerCase();
+        const dataFieldType = ($el.attr('data-field-type') || $el.data('field-type') || '').toLowerCase();
+        if (dataType === 'time' || dataFieldType === 'time') {
+            return true;
+        }
+        if ($el.hasClass('time-field') || 
+            $el.hasClass('jet-form-builder__field--time') || 
+            $el.hasClass('jet-form__field--time') || 
+            $el.hasClass('cx-vui-time') || 
+            $el.hasClass('cx-ui-time') ||
+            $el.hasClass('cx-vui-time-picker') ||
+            $el.hasClass('jet-time-picker') ||
+            $el.closest('.cx-vui-time, .cx-vui-component--time, .jet-form-builder__field-wrap--time, .jet-form__field-wrap--time').length > 0) {
+            return true;
+        }
+        if (options && typeof options === 'object') {
+            if (options.timepickerOnly === true || options.timeOnly === true || options.datepicker === false || options.onlyTime === true) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     // Custom Datepicker Wrapper — only intercepts JetEngine elements
     const customDatepicker = function(options) {
         const args = Array.prototype.slice.call(arguments);
@@ -47,6 +77,12 @@
         return this.each(function() {
             const $visibleInput = $(this);
             if (isJetEngineElement($visibleInput)) {
+                if (isTimeField($visibleInput, options)) {
+                    if (originalDatepicker) {
+                        originalDatepicker.call($visibleInput, options);
+                    }
+                    return;
+                }
                 const $altInput = (options && options.altField) ? $(options.altField) : null;
                 let handled = false;
                 if (window.PersianCalendarIntegrations) {
@@ -91,6 +127,12 @@
         return this.each(function() {
             const $visibleInput = $(this);
             if (isJetEngineElement($visibleInput)) {
+                if (isTimeField($visibleInput, options)) {
+                    if (originalDatetimepicker) {
+                        originalDatetimepicker.call($visibleInput, options);
+                    }
+                    return;
+                }
                 const $altInput = (options && options.altField) ? $(options.altField) : null;
                 let handled = false;
                 if (window.PersianCalendarIntegrations) {
@@ -176,6 +218,9 @@
 
         $ctx.find(selectors.join(', ')).each(function() {
             const $visibleInput = $(this);
+            if (isTimeField($visibleInput)) {
+                return;
+            }
             let isTime = false;
             const dataShowTime = $visibleInput.attr('data-persian-show-time');
             if (dataShowTime !== undefined && dataShowTime !== null) {

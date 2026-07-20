@@ -97,12 +97,12 @@ function persca_get_jet_engine_date_meta_keys() {
             foreach ($fields as $field) {
                 if (empty($field['name']) || empty($field['type'])) continue;
                 
-                if (in_array($field['type'], array('date', 'datetime-local', 'datetime', 'time'), true)) {
+                if (in_array($field['type'], array('date', 'datetime-local', 'datetime'), true)) {
                     $keys[] = $field['name'];
                 } elseif ($field['type'] === 'repeater' && !empty($field['repeater-fields'])) {
                     $has_date = false;
                     foreach ($field['repeater-fields'] as $subfield) {
-                        if (!empty($subfield['type']) && in_array($subfield['type'], array('date', 'datetime-local', 'datetime', 'time'), true)) {
+                        if (!empty($subfield['type']) && in_array($subfield['type'], array('date', 'datetime-local', 'datetime'), true)) {
                             $has_date = true;
                             break;
                         }
