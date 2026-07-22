@@ -20,30 +20,8 @@ function persca_jet_engine_enqueue_assets() {
         return;
     }
 
-    // Enqueue base Persian calendar script and converter
-    wp_enqueue_script(
-        'persian-calendar-main',
-        PERSCA_PLUGIN_URL . 'assets/js/persian-calendar.js',
-        array('jquery'),
-        PERSCA_PLUGIN_VERSION,
-        true
-    );
-
-    // Enqueue main Gutenberg calendar styles for the custom datepicker
-    wp_enqueue_style(
-        'persian-calendar-gutenberg-styles',
-        PERSCA_PLUGIN_URL . 'assets/css/gutenberg-calendar.css',
-        array(),
-        PERSCA_PLUGIN_VERSION
-    );
-
-    // Enqueue Jet integration overrides styles (shared between JetEngine and JetFormBuilder)
-    wp_enqueue_style(
-        'persca-integrate-jet-styles',
-        PERSCA_PLUGIN_URL . 'assets/css/integrate-jet.css',
-        array('persian-calendar-gutenberg-styles'),
-        PERSCA_PLUGIN_VERSION
-    );
+    // Shared Jalali core script + popup styles.
+    persca_enqueue_core_assets();
 
     // Enqueue JetEngine integration overrides
     wp_enqueue_script(
@@ -56,12 +34,7 @@ function persca_jet_engine_enqueue_assets() {
 }
 
 function persca_jet_engine_add_dependencies() {
-    global $wp_scripts;
-    if (!$wp_scripts) {
-        return;
-    }
-    
-    $target_scripts = array(
+    persca_inject_dependency(array(
         'jet-engine-meta-boxes',
         'jet-engine-advanced-date-field',
         'jet-engine-cct-list',
@@ -69,16 +42,7 @@ function persca_jet_engine_add_dependencies() {
         'jet-engine-cct-quick-edit',
         'jet-engine-cct-relations',
         'jet-engine-cct-query-dialog',
-    );
-    
-    foreach ($target_scripts as $handle) {
-        if (isset($wp_scripts->registered[$handle])) {
-            $deps = $wp_scripts->registered[$handle]->deps;
-            if (!in_array('persca-integrate-jet-engine', $deps, true)) {
-                $wp_scripts->registered[$handle]->deps[] = 'persca-integrate-jet-engine';
-            }
-        }
-    }
+    ), 'persca-integrate-jet-engine');
 }
 
 function persca_get_jet_engine_date_meta_keys() {
@@ -86,17 +50,17 @@ function persca_get_jet_engine_date_meta_keys() {
     if ($keys !== null) {
         return $keys;
     }
-    
+
     $keys = array();
-    
+
     if (function_exists('jet_engine') && !empty(jet_engine()->meta_boxes)) {
         $registered_fields = jet_engine()->meta_boxes->get_registered_fields();
-        
+
         $process_fields = function($fields) use (&$process_fields, &$keys) {
             if (!is_array($fields)) return;
             foreach ($fields as $field) {
                 if (empty($field['name']) || empty($field['type'])) continue;
-                
+
                 if (in_array($field['type'], array('date', 'datetime-local', 'datetime'), true)) {
                     $keys[] = $field['name'];
                 } elseif ($field['type'] === 'repeater' && !empty($field['repeater-fields'])) {
@@ -113,17 +77,17 @@ function persca_get_jet_engine_date_meta_keys() {
                 }
             }
         };
-        
+
         if (is_array($registered_fields)) {
             foreach ($registered_fields as $object_type => $fields) {
                 $process_fields($fields);
             }
         }
     }
-    
+
     $keys = apply_filters('persca_jet_engine_date_meta_keys', $keys);
     $keys = array_unique($keys);
-    
+
     return $keys;
 }
 
@@ -139,28 +103,36 @@ add_filter('jet-engine/listings/dynamic-field/field-value', 'persca_jet_engine_d
 // Hook into JetEngine custom-value filter to intercept post-fetch values for object properties and meta fields
 add_filter('jet-engine/listings/dynamic-field/custom-value', 'persca_jet_engine_dynamic_field_custom_value', 10, 3);
 
+/**
+ * Whether the current request should skip Jalali conversion of display values.
+ *
+ * Skips machine contexts (REST, WP-CLI, XML-RPC) and admin screens other than
+ * the Elementor editor/preview or AJAX. Shared by all JetEngine value filters.
+ *
+ * @return bool
+ */
+function persca_jet_engine_should_skip_conversion(): bool {
+    if ((defined('REST_REQUEST') && REST_REQUEST) || (defined('WP_CLI') && WP_CLI) || (defined('XMLRPC_REQUEST') && XMLRPC_REQUEST)) {
+        return true;
+    }
+
+    if (is_admin() && !wp_doing_ajax()) {
+        $is_elementor = (isset($_GET['action']) && $_GET['action'] === 'elementor') || isset($_GET['elementor-preview']);
+        if (!$is_elementor) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 function persca_jet_engine_filter_listing_meta($value, $key, $object_id) {
     if ($value === null || $value === '') {
         return $value;
     }
 
-    // Do not convert during REST API, WP-CLI, or XML-RPC requests
-    if ((defined('REST_REQUEST') && REST_REQUEST) || (defined('WP_CLI') && WP_CLI) || (defined('XMLRPC_REQUEST') && XMLRPC_REQUEST)) {
+    if (persca_jet_engine_should_skip_conversion()) {
         return $value;
-    }
-
-    // Only convert on the frontend, but allow inside Elementor editor/preview or AJAX requests
-    if (is_admin() && !wp_doing_ajax()) {
-        $is_elementor = false;
-        if (
-            (isset($_GET['action']) && $_GET['action'] === 'elementor') ||
-            isset($_GET['elementor-preview'])
-        ) {
-            $is_elementor = true;
-        }
-        if (!$is_elementor) {
-            return $value;
-        }
     }
 
     // ONLY intercept meta keys that are dynamically registered as date/datetime fields in JetEngine
@@ -201,7 +173,7 @@ function persca_jet_engine_convert_meta_value($val) {
         $m = intval($matches[2]);
         $d = intval($matches[3]);
         if (checkdate($m, $d, $y)) {
-            $converter = new PERSCA_Date_Converter();
+            $converter = persca_get_converter();
             $jalali = $converter->gregorian_to_jalali($y, $m, $d);
             $j_date = sprintf('%04d/%02d/%02d', $jalali['y'], $jalali['m'], $jalali['d']);
             return persca_jet_engine_maybe_convert_digits($j_date);
@@ -217,7 +189,7 @@ function persca_jet_engine_convert_meta_value($val) {
         $mi = intval($matches[5]);
         $ss = isset($matches[6]) ? intval($matches[6]) : null;
         if (checkdate($m, $d, $y) && $hh >= 0 && $hh <= 23 && $mi >= 0 && $mi <= 59 && ($ss === null || ($ss >= 0 && $ss <= 59))) {
-            $converter = new PERSCA_Date_Converter();
+            $converter = persca_get_converter();
             $jalali = $converter->gregorian_to_jalali($y, $m, $d);
             if ($ss !== null) {
                 $j_date = sprintf('%04d/%02d/%02d %02d:%02d:%02d', $jalali['y'], $jalali['m'], $jalali['d'], $hh, $mi, $ss);
@@ -237,7 +209,7 @@ function persca_jet_engine_maybe_convert_digits($str) {
     $settings = wp_parse_args($settings, $defaults);
 
     if (!empty($settings['enable_persian_digits'])) {
-        $converter = new PERSCA_Date_Converter();
+        $converter = persca_get_converter();
         return $converter->to_persian_digits($str);
     }
 
@@ -249,23 +221,8 @@ function persca_jet_engine_dynamic_field_value($value, $settings = null) {
         return $value;
     }
 
-    // Do not convert during REST API, WP-CLI, or XML-RPC requests
-    if ((defined('REST_REQUEST') && REST_REQUEST) || (defined('WP_CLI') && WP_CLI) || (defined('XMLRPC_REQUEST') && XMLRPC_REQUEST)) {
+    if (persca_jet_engine_should_skip_conversion()) {
         return $value;
-    }
-
-    // Only convert on the frontend, but allow inside Elementor editor/preview or AJAX requests
-    if (is_admin() && !wp_doing_ajax()) {
-        $is_elementor = false;
-        if (
-            (isset($_GET['action']) && $_GET['action'] === 'elementor') ||
-            isset($_GET['elementor-preview'])
-        ) {
-            $is_elementor = true;
-        }
-        if (!$is_elementor) {
-            return $value;
-        }
     }
 
     // Prevent infinite recursion loops
@@ -285,17 +242,8 @@ function persca_jet_engine_dynamic_field_value($value, $settings = null) {
 }
 
 function persca_jet_engine_dynamic_field_custom_value($value, $settings, $widget) {
-    if (is_admin() && !wp_doing_ajax()) {
-        $is_elementor = false;
-        if (
-            (isset($_GET['action']) && $_GET['action'] === 'elementor') ||
-            isset($_GET['elementor-preview'])
-        ) {
-            $is_elementor = true;
-        }
-        if (!$is_elementor) {
-            return $value;
-        }
+    if (persca_jet_engine_should_skip_conversion()) {
+        return $value;
     }
 
     // If the date callback is active, let JetEngine format it.

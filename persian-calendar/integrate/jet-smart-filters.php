@@ -7,12 +7,13 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-add_action('admin_enqueue_scripts', 'persca_jet_smart_filters_enqueue_assets', 20);
+// Frontend only: JetSmartFilters renders its filters on the front end, so the
+// integration assets must never load in wp-admin (avoids loading on unrelated
+// admin pages such as EDD, WooCommerce, settings, etc.).
 add_action('wp_enqueue_scripts', 'persca_jet_smart_filters_enqueue_assets', 20);
 
 // Inject our script as a dependency of JetSmartFilters script so it loads automatically
 add_action('wp_default_scripts', 'persca_jet_smart_filters_add_dependencies', 100);
-add_action('admin_enqueue_scripts', 'persca_jet_smart_filters_add_dependencies', 100);
 add_action('wp_enqueue_scripts', 'persca_jet_smart_filters_add_dependencies', 100);
 
 /**
@@ -23,30 +24,8 @@ function persca_jet_smart_filters_enqueue_assets() {
         return;
     }
 
-    // Enqueue base Persian calendar script and converter
-    wp_enqueue_script(
-        'persian-calendar-main',
-        PERSCA_PLUGIN_URL . 'assets/js/persian-calendar.js',
-        array('jquery'),
-        PERSCA_PLUGIN_VERSION,
-        true
-    );
-
-    // Enqueue main Gutenberg calendar styles for the custom datepicker
-    wp_enqueue_style(
-        'persian-calendar-gutenberg-styles',
-        PERSCA_PLUGIN_URL . 'assets/css/gutenberg-calendar.css',
-        array(),
-        PERSCA_PLUGIN_VERSION
-    );
-
-    // Enqueue Jet integration overrides styles
-    wp_enqueue_style(
-        'persca-integrate-jet-styles',
-        PERSCA_PLUGIN_URL . 'assets/css/integrate-jet.css',
-        array('persian-calendar-gutenberg-styles'),
-        PERSCA_PLUGIN_VERSION
-    );
+    // Shared Jalali core script + popup styles.
+    persca_enqueue_core_assets();
 
     // Enqueue JetSmartFilters integration overrides script
     wp_enqueue_script(
@@ -62,23 +41,9 @@ function persca_jet_smart_filters_enqueue_assets() {
  * Add JetSmartFilters integration script as a dependency of the official JetSmartFilters script.
  */
 function persca_jet_smart_filters_add_dependencies() {
-    global $wp_scripts;
-    if (!$wp_scripts) {
-        return;
-    }
-    
-    $target_scripts = array(
+    persca_inject_dependency(array(
         'jet-smart-filters',
-    );
-    
-    foreach ($target_scripts as $handle) {
-        if (isset($wp_scripts->registered[$handle])) {
-            $deps = &$wp_scripts->registered[$handle]->deps;
-            if (!in_array('persca-integrate-jet-smart-filters', $deps, true)) {
-                $deps[] = 'persca-integrate-jet-smart-filters';
-            }
-        }
-    }
+    ), 'persca-integrate-jet-smart-filters');
 }
 
 // Convert Jalali date filters in the request to Gregorian before JetSmartFilters processes them
@@ -122,7 +87,7 @@ function persca_jet_smart_filters_convert_single_jalali_to_gregorian($date_str) 
         $jm = intval($matches[3]);
         $jd = intval($matches[4]);
 
-        $converter = new PERSCA_Date_Converter();
+        $converter = persca_get_converter();
         // If the year is a Jalali year (e.g. 1300 to 1700) and is a valid date
         if ($jy >= 1300 && $jy < 1700 && $converter->is_valid_jalali($jy, $jm, $jd)) {
             $g = $converter->jalali_to_gregorian($jy, $jm, $jd);

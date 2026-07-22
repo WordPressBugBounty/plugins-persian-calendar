@@ -178,6 +178,9 @@ final class PERSCA_Admin
             if ($key === 'enable_integration_jet_smart_filters' && ! class_exists('Jet_Smart_Filters')) {
                 $out[$key] = false;
             }
+            if ($key === 'enable_integration_edd' && ! (class_exists('Easy_Digital_Downloads') || function_exists('EDD') || defined('EDD_VERSION'))) {
+                $out[$key] = false;
+            }
         }
 
         // Disable Gutenberg calendar if Classic Editor is enabled
@@ -212,19 +215,8 @@ final class PERSCA_Admin
             'enable_integration_jet_form_builder' => false,
             'enable_integration_jet_booking' => false,
             'enable_integration_jet_smart_filters' => false,
+            'enable_integration_edd' => false,
         ];
-    }
-
-    /**
-     * Check if an option is enabled.
-     *
-     * @param array $options Options array.
-     * @param string $key Option key to check.
-     * @return bool True if option is enabled, false otherwise.
-     */
-    private function is_option_enabled(array $options, string $key): bool
-    {
-        return ! empty($options[$key]);
     }
 
     /**
@@ -289,7 +281,7 @@ final class PERSCA_Admin
         printf(
             '<input type="checkbox" id="%1$s" name="' . esc_attr(self::OPTIONS_KEY) . '[%1$s]" value="1" %2$s %3$s/>',
             esc_attr($key),
-            checked(!$is_disabled && $this->is_option_enabled($opts, $key), true, false),
+            checked(!$is_disabled && ! empty($opts[$key]), true, false),
             $is_disabled ? 'disabled="disabled"' : ''
         );
         echo '<span class="persian-calendar-slider"></span>';
@@ -297,6 +289,30 @@ final class PERSCA_Admin
         echo '</div>';
 
         echo '</div>'; // Closes main row
+    }
+
+    /**
+     * Render a list of checkbox fields from a field definition array.
+     *
+     * @param array $fields Map of option key => field data (label, desc, icon, optional disabled_by).
+     */
+    private function render_fields(array $fields): void
+    {
+        foreach ($fields as $option => $field_data) {
+            $field_args = [
+                'label_for' => $option,
+                'option'    => $option,
+                'label'     => $field_data['label'],
+                'desc'      => $field_data['desc'],
+                'icon'      => $field_data['icon'],
+            ];
+
+            if (isset($field_data['disabled_by'])) {
+                $field_args['disabled_by'] = $field_data['disabled_by'];
+            }
+
+            $this->checkbox_field($field_args);
+        }
     }
 
     /**
@@ -343,22 +359,7 @@ final class PERSCA_Admin
             ],
         ];
 
-        foreach ($fields as $option => $field_data) {
-            $field_args = [
-                'label_for' => $option,
-                'option'    => $option,
-                'label'     => $field_data['label'],
-                'desc'      => $field_data['desc'],
-                'icon'      => $field_data['icon'],
-            ];
-
-            // Add disabled_by if exists
-            if (isset($field_data['disabled_by'])) {
-                $field_args['disabled_by'] = $field_data['disabled_by'];
-            }
-
-            $this->checkbox_field($field_args);
-        }
+        $this->render_fields($fields);
     }
 
     /**
@@ -372,6 +373,7 @@ final class PERSCA_Admin
         $jet_form_builder_active = function_exists('jet_form_builder');
         $jet_booking_active = class_exists('JET_ABAF\\Plugin') || defined('JET_ABAF_VERSION');
         $jet_smart_filters_active = class_exists('Jet_Smart_Filters');
+        $edd_active = class_exists('Easy_Digital_Downloads') || function_exists('EDD') || defined('EDD_VERSION');
 
         $fields = [
             'enable_integration_jet_engine' => [
@@ -410,24 +412,18 @@ final class PERSCA_Admin
                     'message' => __('To use this integration, JetSmartFilters plugin must be installed and active.', 'persian-calendar'),
                 ] : null,
             ],
+            'enable_integration_edd' => [
+                'label' => __('Easy Digital Downloads Integration', 'persian-calendar'),
+                'desc' => __('Enable Persian/Jalali calendar and date picker support in Easy Digital Downloads discounts, orders, customers, reports, list-table filters and CSV exporters.', 'persian-calendar'),
+                'icon' => 'dashicons-cart',
+                'disabled_by' => !$edd_active ? [
+                    'active'  => true,
+                    'message' => __('To use this integration, Easy Digital Downloads plugin must be installed and active.', 'persian-calendar'),
+                ] : null,
+            ],
         ];
 
-        foreach ($fields as $option => $field_data) {
-            $field_args = [
-                'label_for' => $option,
-                'option'    => $option,
-                'label'     => $field_data['label'],
-                'desc'      => $field_data['desc'],
-                'icon'      => $field_data['icon'],
-            ];
-
-            // Add disabled_by if exists
-            if (isset($field_data['disabled_by'])) {
-                $field_args['disabled_by'] = $field_data['disabled_by'];
-            }
-
-            $this->checkbox_field($field_args);
-        }
+        $this->render_fields($fields);
     }
 
     /**

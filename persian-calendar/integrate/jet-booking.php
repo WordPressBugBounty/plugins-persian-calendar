@@ -32,36 +32,14 @@ function persca_jet_booking_enqueue_assets() {
         return;
     }
 
-    // Enqueue base Persian calendar script (date converter + calendar UI)
-    wp_enqueue_script(
-        'persian-calendar-main',
-        PERSCA_PLUGIN_URL . 'assets/js/persian-calendar.js',
-        array('jquery'),
-        PERSCA_PLUGIN_VERSION,
-        true
-    );
+    // Shared Jalali core script + popup styles.
+    persca_enqueue_core_assets();
 
-    // Enqueue the main frontend stylesheet for the calendar (range highlights and sizing variables)
+    // Frontend range-picker stylesheet (JetBooking only).
     wp_enqueue_style(
         'persian-calendar-front',
         PERSCA_PLUGIN_URL . 'assets/css/persian-calendar-front.css',
         array(),
-        PERSCA_PLUGIN_VERSION
-    );
-
-    // Enqueue Gutenberg calendar styles for the custom datepicker popup
-    wp_enqueue_style(
-        'persian-calendar-gutenberg-styles',
-        PERSCA_PLUGIN_URL . 'assets/css/gutenberg-calendar.css',
-        array(),
-        PERSCA_PLUGIN_VERSION
-    );
-
-    // Enqueue shared Jet integration styles
-    wp_enqueue_style(
-        'persca-integrate-jet-styles',
-        PERSCA_PLUGIN_URL . 'assets/css/integrate-jet.css',
-        array('persian-calendar-gutenberg-styles'),
         PERSCA_PLUGIN_VERSION
     );
 
@@ -82,25 +60,11 @@ function persca_jet_booking_enqueue_assets() {
  * so it loads before JetBooking initialises its datepickers.
  */
 function persca_jet_booking_add_dependencies() {
-    global $wp_scripts;
-    if (!$wp_scripts) {
-        return;
-    }
-
-    // 1. Force the original date range picker scripts to depend on our integration script
-    // so our script executes BEFORE the original library and its inline init script execute.
-    $original_picker_scripts = array('jquery-date-range-picker', 'jquery-date-range-picker-js');
-    foreach ($original_picker_scripts as $handle) {
-        if (isset($wp_scripts->registered[$handle])) {
-            $deps = &$wp_scripts->registered[$handle]->deps;
-            if (!in_array('persca-integrate-jet-booking', $deps, true)) {
-                $deps[] = 'persca-integrate-jet-booking';
-            }
-        }
-    }
-
-    // 2. Ensure JetBooking init scripts load AFTER our integration script
-    $target_scripts = array(
+    // Load our overrides before JetBooking initialises its date pickers.
+    persca_inject_dependency(array(
+        // Original date range picker library.
+        'jquery-date-range-picker',
+        'jquery-date-range-picker-js',
         // Frontend: date range picker initialisation
         'jet-booking-init',
         'jet-abaf-booking-init',
@@ -116,14 +80,5 @@ function persca_jet_booking_add_dependencies() {
         'jet-abaf-post-meta-configuration',
         // Backend: calendars page
         'jet-abaf-calendars-page',
-    );
-
-    foreach ($target_scripts as $handle) {
-        if (isset($wp_scripts->registered[$handle])) {
-            $deps = &$wp_scripts->registered[$handle]->deps;
-            if (!in_array('persca-integrate-jet-booking', $deps, true)) {
-                $deps[] = 'persca-integrate-jet-booking';
-            }
-        }
-    }
+    ), 'persca-integrate-jet-booking');
 }

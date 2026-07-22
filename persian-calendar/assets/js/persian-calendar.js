@@ -808,9 +808,9 @@
           }
           this.selectedDate = { year, month, day };
           this.updateCalendarView();
-          this.notifyDateChange();
+          this.notifyDateChange(true);
           
-          if (this.isInput && !this.options.showTime) {
+          if (this.isInput) {
             this.close();
           }
           return;
@@ -819,10 +819,10 @@
 
       this.selectedDate = { year, month, day };
       this.updateCalendarView();
-      this.notifyDateChange();
+      this.notifyDateChange(true);
       
-      // Auto close popover if time picker is not displayed
-      if (this.isInput && !this.options.showTime) {
+      // Auto close popover when date is selected
+      if (this.isInput) {
         this.close();
       }
     }
@@ -862,7 +862,11 @@
 
       this.updateCalendarView();
       this.updateTimeDisplay();
-      this.notifyDateChange();
+      this.notifyDateChange(true);
+
+      if (this.isInput) {
+        this.close();
+      }
     }
 
     updateCalendarView() {
@@ -902,7 +906,7 @@
       if (this.dom.minuteInput) this.dom.minuteInput.value = padZero(this.selectedTime.minute);
     }
 
-    notifyDateChange() {
+    notifyDateChange(isDaySelect = false) {
       const [gy, gm, gd] = jalaliToGregorian(this.selectedDate.year, this.selectedDate.month, this.selectedDate.day);
       const gregorianDate = new Date(gy, gm - 1, gd, this.selectedTime.hour, this.selectedTime.minute);
 
@@ -947,7 +951,8 @@
         time: this.selectedTime,
         date: gregorianDate,
         rangeStart: this.options.rangeStart,
-        rangeEnd: this.options.rangeEnd
+        rangeEnd: this.options.rangeEnd,
+        isDaySelect: isDaySelect
       });
     }
 
@@ -1386,7 +1391,7 @@
                         $visibleInput[0].dispatchEvent(new Event('change', { bubbles: true }));
                     }
 
-                    if (!showTime) {
+                    if (!showTime || dateInfo.isDaySelect) {
                         hidePopup();
                     }
                 }
