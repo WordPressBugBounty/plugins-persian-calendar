@@ -194,9 +194,28 @@
     }
 
     // Override the Chart.js date adapter's format() so time axes render Jalali.
+    // Force the Persian font on the canvas-drawn chart text (axis ticks incl.
+    // the day-of-month numbers, tooltips and legend). Canvas text ignores CSS,
+    // so the dashboard-font.css `!important` rule never reaches the chart. The
+    // only way to style it is through Chart.js's own font defaults.
+    function applyChartFont(C) {
+        try {
+            var fontStack = "'VazirmatnVF', Tahoma, sans-serif";
+            if (C && C.defaults) {
+                if (C.defaults.global) {            // Chart.js v2
+                    C.defaults.global.defaultFontFamily = fontStack;
+                }
+                if (C.defaults.font) {              // Chart.js v3+
+                    C.defaults.font.family = fontStack;
+                }
+            }
+        } catch (e) {}
+    }
+
     function applyChartAdapter() {
         try {
             var C = window.Chart;
+            applyChartFont(C);
             if (C && C._adapters && C._adapters._date &&
                 typeof C._adapters._date.override === 'function') {
                 var proto = C._adapters._date.prototype;
@@ -625,6 +644,15 @@
     function markDatesReady() {
         if (document.body) { document.body.classList.add('persca-dates-ready'); }
     }
+
+    // Ask the browser to fetch VazirmatnVF up front so it is ready in the font
+    // cache before Chart.js paints the canvas (canvas can only draw an
+    // already-loaded font). Harmless if the API is unavailable.
+    try {
+        if (document.fonts && typeof document.fonts.load === 'function') {
+            document.fonts.load("14px VazirmatnVF");
+        }
+    } catch (e) {}
 
     $(function () {
         scanDateFields(document);

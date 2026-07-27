@@ -4,7 +4,7 @@ Tags: شمسی, Jalali, Calendar, Shamsi, Gutenberg
 Requires at least: 5.4
 Tested up to: 7.0
 Requires PHP: 7.2
-Stable tag: 1.3.5
+Stable tag: 1.3.6
 License: GPL2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -40,9 +40,9 @@ This plugin features deep integration with Crocoblock JetPlugins to provide full
     *   Full Jalali date range picker support on frontend booking forms.
     *   Jalali calendar conversion in backend booking calendars, timelines, and booking details fields.
 *   **Easy Digital Downloads (EDD) Integration:**
-    *   Replaces every EDD jQuery UI date picker (`edd_datepicker`) with a Jalali (Shamsi) date picker: discount start/expiration dates, order date, customer "Date Created", the reports custom range, list-table date filters, and all CSV exporter From/To ranges.
-    *   Submitted Jalali dates are converted back to Gregorian automatically, so EDD keeps storing and querying native Gregorian dates (the database is never modified).
-    *   Localizes the Gregorian dates printed across EDD admin screens to the Jalali calendar, with optional Persian digits.
+    *   Full Shamsi (Jalali) calendar support across EDD admin pages: discount start/end dates, orders, customer dates, and reports.
+    *   Seamlessly converts Shamsi inputs back to standard date format behind the scenes without breaking EDD data.
+    *   Displays EDD store dates in Shamsi format with optional Persian digits.
 
 == Installation ==
 
@@ -70,6 +70,9 @@ No, the plugin is optimized and has minimal impact on performance.
 4. Persian digit conversion
 
 == Changelog ==
+
+= 1.3.6 =
+* New: Dedicated time picker for time-only fields (JetEngine & JetFormBuilder, front-end and admin).
 
 = 1.3.5 =
 * Added Easy Digital Downloads (EDD) Integration: Jalali calendar and date picker support for EDD admin screens, discount codes, reports, date filters
