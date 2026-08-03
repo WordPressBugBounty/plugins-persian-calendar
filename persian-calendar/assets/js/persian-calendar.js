@@ -797,6 +797,7 @@
           this.options.rangeEnd = null;
           this.selectedDate = { year, month, day };
           this.updateCalendarView();
+          this.notifyDateChange(true);
           return;
         } else {
           // Second click: End the range
@@ -910,7 +911,7 @@
       const [gy, gm, gd] = jalaliToGregorian(this.selectedDate.year, this.selectedDate.month, this.selectedDate.day);
       const gregorianDate = new Date(gy, gm - 1, gd, this.selectedTime.hour, this.selectedTime.minute);
 
-      const formatted = formatDate(
+      let formatted = formatDate(
         this.selectedDate.year,
         this.selectedDate.month,
         this.selectedDate.day,
@@ -920,6 +921,18 @@
         this.options.dateFormat,
         this.options.persianDigits
       );
+
+      if (this.options.rangeMode && this.options.rangeStart) {
+        const [sjy, sjm, sjd] = gregorianToJalali(this.options.rangeStart.getFullYear(), this.options.rangeStart.getMonth() + 1, this.options.rangeStart.getDate());
+        const startStr = formatDate(sjy, sjm, sjd, 0, 0, false, this.options.dateFormat, this.options.persianDigits);
+        if (this.options.rangeEnd) {
+          const [ejy, ejm, ejd] = gregorianToJalali(this.options.rangeEnd.getFullYear(), this.options.rangeEnd.getMonth() + 1, this.options.rangeEnd.getDate());
+          const endStr = formatDate(ejy, ejm, ejd, 0, 0, false, this.options.dateFormat, this.options.persianDigits);
+          formatted = `${startStr} - ${endStr}`;
+        } else {
+          formatted = startStr;
+        }
+      }
 
       // Write output back to standard input elements if bound
       if (this.isInput) {
@@ -1062,9 +1075,12 @@
     isValidGregorian,
     isValidJalali,
     toPersianDigits,
+    toAsciiDigits,
     padZero,
     getDaysInJalaliMonth,
     PERSIAN_MONTHS,
+    PERSIAN_WEEKDAYS,
+    PERSIAN_WEEKDAYS_LONG,
     PERSIAN_WEEKDAYS_SHORT: PERSIAN_WEEKDAYS
   };
 
@@ -1251,11 +1267,11 @@
 
         let $popup = $visibleInput.data('persian-time-popup');
         if (!$popup) {
-            $popup = $('<div class="persian-calendar-popup persian-time-popup" style="display:none; position:absolute; z-index:999999;"></div>');
+            $popup = $('<div class="persian-calendar-popup persian-time-popup" style="display:none; position:absolute; z-index:999999; pointer-events:auto;"></div>');
             $popup.on('click mousedown mouseup pointerdown pointerup touchstart touchend', function(e) {
                 e.stopPropagation();
             });
-            const $parentPopup = $visibleInput.closest('.elementor-popup-modal, .jet-popup, .dialog-widget, .jet-popup-container');
+            const $parentPopup = $visibleInput.closest('.jet-popup__container-inner, .dialog-widget-content, .elementor-popup-modal, .jet-popup-container, .jet-popup, .dialog-widget');
             if ($parentPopup.length) {
                 $parentPopup.append($popup);
             } else {
@@ -1553,11 +1569,11 @@
 
         let $popup = $visibleInput.data('persian-popup');
         if (!$popup) {
-            $popup = $('<div class="persian-calendar-popup" style="display:none; position:absolute; z-index:999999; background:#fff; box-shadow:0 4px 20px rgba(0,0,0,0.15); border:1px solid #edf2f7; border-radius:8px; padding:15px; width:280px;"></div>');
+            $popup = $('<div class="persian-calendar-popup" style="display:none; position:absolute; z-index:999999; pointer-events:auto; background:#fff; box-shadow:0 4px 20px rgba(0,0,0,0.15); border:1px solid #edf2f7; border-radius:8px; padding:15px; width:280px;"></div>');
             $popup.on('click mousedown mouseup pointerdown pointerup touchstart touchend', function(e) {
                 e.stopPropagation();
             });
-            const $parentPopup = $visibleInput.closest('.elementor-popup-modal, .jet-popup, .dialog-widget, .jet-popup-container');
+            const $parentPopup = $visibleInput.closest('.jet-popup__container-inner, .dialog-widget-content, .elementor-popup-modal, .jet-popup-container, .jet-popup, .dialog-widget');
             if ($parentPopup.length) {
                 $parentPopup.append($popup);
             } else {
