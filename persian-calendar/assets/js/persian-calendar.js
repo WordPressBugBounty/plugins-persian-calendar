@@ -778,7 +778,7 @@
 
       // Boundary check vertical (flip popover up if no room below)
       const viewportHeight = window.innerHeight;
-      if (rect.bottom + popoverRect.height > viewportHeight + window.scrollY && rect.top - popoverRect.height > window.scrollY) {
+      if (rect.bottom + popoverRect.height > viewportHeight && rect.top - popoverRect.height > 0) {
         top = rect.top - popoverRect.height + window.scrollY;
       }
 
@@ -1271,12 +1271,12 @@
             $popup.on('click mousedown mouseup pointerdown pointerup touchstart touchend', function(e) {
                 e.stopPropagation();
             });
-            const $parentPopup = $visibleInput.closest('.jet-popup__container-inner, .dialog-widget-content, .elementor-popup-modal, .jet-popup-container, .jet-popup, .dialog-widget');
-            if ($parentPopup.length) {
-                $parentPopup.append($popup);
-            } else {
-                $('body').append($popup);
-            }
+            // Render the picker as a body-level portal. Appending it inside an
+            // Elementor/JetPopup container makes `position:absolute` use a transformed
+            // modal ancestor as its containing block, while jQuery.offset() returns
+            // document coordinates. Mixing those coordinate systems moves the picker
+            // far above the field on scrolled pages and inside animated popups.
+            $('body').append($popup);
             $visibleInput.data('persian-time-popup', $popup);
         }
 
@@ -1305,12 +1305,8 @@
             if (left < scrollLeft) {
                 left = scrollLeft + 15;
             }
-            const $parent = $popup.parent();
-            if ($parent.length && !$parent.is('body')) {
-                const parentOffset = $parent.offset();
-                top -= parentOffset.top;
-                left -= parentOffset.left;
-            }
+            // The popup is portalled to body, so these document coordinates can
+            // be applied directly without subtracting a modal/container offset.
             $popup.css({ top: top + 'px', left: left + 'px' });
         }
 
@@ -1573,12 +1569,12 @@
             $popup.on('click mousedown mouseup pointerdown pointerup touchstart touchend', function(e) {
                 e.stopPropagation();
             });
-            const $parentPopup = $visibleInput.closest('.jet-popup__container-inner, .dialog-widget-content, .elementor-popup-modal, .jet-popup-container, .jet-popup, .dialog-widget');
-            if ($parentPopup.length) {
-                $parentPopup.append($popup);
-            } else {
-                $('body').append($popup);
-            }
+            // Render the picker as a body-level portal. Appending it inside an
+            // Elementor/JetPopup container makes `position:absolute` use a transformed
+            // modal ancestor as its containing block, while jQuery.offset() returns
+            // document coordinates. Mixing those coordinate systems moves the picker
+            // far above the field on scrolled pages and inside animated popups.
+            $('body').append($popup);
             $visibleInput.data('persian-popup', $popup);
         }
 
@@ -1672,13 +1668,8 @@
                 left = scrollLeft + 15;
             }
 
-            const $parent = $popup.parent();
-            if ($parent.length && !$parent.is('body')) {
-                const parentOffset = $parent.offset();
-                top -= parentOffset.top;
-                left -= parentOffset.left;
-            }
-
+            // The popup is portalled to body, so these document coordinates can
+            // be applied directly without subtracting a modal/container offset.
             $popup.css({ top: top + 'px', left: left + 'px' });
         }
 
