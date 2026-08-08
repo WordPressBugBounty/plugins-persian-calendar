@@ -4,7 +4,7 @@ Tags: شمسی, Jalali, Calendar, Shamsi, Gutenberg
 Requires at least: 5.4
 Tested up to: 7.0
 Requires PHP: 7.2
-Stable tag: 1.4.0
+Stable tag: 1.4.1
 License: GPL2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -74,6 +74,9 @@ No, the plugin is optimized and has minimal impact on performance.
 4. EDD reports
 
 == Changelog ==
+
+= 1.4.1 =
+* Fixed background date conversion issues by introducing format-driven machine date detection.
 
 = 1.4.0 =
 * Added WooCommerce Integration: Complete Jalali calendar support for WooCommerce orders, coupons, product schedules, reports, and analytics.

@@ -139,11 +139,10 @@ class PERSCA_Plugin
     }
 
     /**
-     * Standard, unambiguous machine formats.
+     * Standard, unambiguous machine and technical date formats.
      *
-     * Only formats that are machine readable by definition belong here. A
-     * shape such as Y-m-d is deliberately absent: it is just as common as a
-     * display format, so the request context decides, not the format string.
+     * Formats here are machine readable and should remain Gregorian across all contexts
+     * (cron, REST API, AJAX, database queries, internal handlers).
      *
      * @return string[]
      */
@@ -155,8 +154,16 @@ class PERSCA_Plugin
             'U',
             DATE_ATOM,
             DATE_W3C,
+            DATE_RFC822,
+            DATE_RFC1123,
             DATE_RFC2822,
             DATE_RFC3339,
+            'Y-m-d H:i:s',
+            'Y-m-d H:i',
+            'Y-m-d\TH:i:s',
+            'Y-m-d\TH:i:s\Z',
+            'Y-m-d\TH:i:s.u\Z',
+            'Y-m-d\TH:i:sP',
         ];
 
         // Several of these constants share the same value.
@@ -166,73 +173,11 @@ class PERSCA_Plugin
     }
 
     /**
-     * Whether the current AJAX request is a known machine/export endpoint.
-     *
-     * Front-end AJAX is display output and must stay Jalali, so only vetted
-     * action names are bypassed. Site owners can extend the list.
-     *
-     * @return bool
-     */
-    private function is_machine_ajax_action(): bool
-    {
-        if (! function_exists('wp_doing_ajax') || ! wp_doing_ajax()) {
-            return false;
-        }
-
-        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-        $action = isset($_REQUEST['action']) ? sanitize_key(wp_unslash($_REQUEST['action'])) : '';
-
-        if ('' === $action) {
-            return false;
-        }
-
-        $actions = (array) apply_filters(
-            'persca_machine_ajax_actions',
-            [
-                'woocommerce_do_ajax_product_export',
-            ]
-        );
-
-        return in_array($action, $actions, true);
-    }
-
-    /**
-     * Machine request context, or an empty string for display contexts.
-     *
-     * @return string
-     */
-    private function machine_date_context(): string
-    {
-        if (defined('REST_REQUEST') && REST_REQUEST) {
-            return 'rest';
-        }
-
-        if (defined('WP_CLI') && WP_CLI) {
-            return 'cli';
-        }
-
-        if (defined('XMLRPC_REQUEST') && XMLRPC_REQUEST) {
-            return 'xmlrpc';
-        }
-
-        // Precautionary: core feed templates ask mysql2date() not to translate,
-        // so this mainly covers third-party feeds.
-        if (isset($GLOBALS['wp_query']) && function_exists('is_feed') && is_feed()) {
-            return 'feed';
-        }
-
-        if ($this->is_machine_ajax_action()) {
-            return 'ajax_export';
-        }
-
-        return '';
-    }
-
-    /**
      * Whether a date passing through date_i18n()/wp_date() may be converted.
      *
-     * The request context decides first: a machine context is never converted,
-     * even when the format matches the site's display format.
+     * Format-driven approach (similar to wp-parsidate): machine/technical formats
+     * are never converted, ensuring background jobs, REST endpoints, and database
+     * writers stay 100% Gregorian regardless of request context.
      *
      * @param string $format    Requested date format.
      * @param mixed  $timestamp Timestamp handed to the filter.
@@ -240,17 +185,9 @@ class PERSCA_Plugin
      */
     private function should_convert_date($format, $timestamp): bool
     {
-        $context = $this->machine_date_context();
-
-        if (in_array((string) $format, $this->machine_date_formats(), true)) {
-            $should_convert = false;
-            $context        = 'standard_format';
-        } elseif ('' !== $context) {
-            $should_convert = false;
-        } else {
-            $should_convert = true;
-            $context        = 'display';
-        }
+        $is_machine     = in_array((string) $format, $this->machine_date_formats(), true);
+        $should_convert = ! $is_machine;
+        $context        = $is_machine ? 'standard_format' : 'display';
 
         return (bool) apply_filters(
             'persca_should_convert_date',
