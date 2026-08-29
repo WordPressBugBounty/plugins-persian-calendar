@@ -119,7 +119,7 @@ if (!function_exists('persca_rest_route_matches')) {
 
 if (!function_exists('persca_keep_jalali_on_rest_routes')) {
     /**
-     * @deprecated 1.4.2 No longer needed as date conversion is format-driven.
+     * @deprecated 1.5.0 No longer needed as date conversion is format-driven.
      *
      * @param string[]      $needles   Lower-case route fragments.
      * @param callable|null $is_active Optional callback.

@@ -65,6 +65,7 @@ class PERSCA_Plugin
                 'enable_integration_jet_engine'        => 'jet-engine.php',
                 'enable_integration_jet_form_builder'  => 'jet-form-builder.php',
                 'enable_integration_jet_booking'       => 'jet-booking.php',
+                'enable_integration_jet_appointments'  => 'jet-appointments-booking.php',
                 'enable_integration_jet_smart_filters' => 'jet-smart-filters.php',
                 'enable_integration_edd'               => 'edd.php',
                 'enable_integration_woocommerce'       => 'woocommerce.php',
@@ -187,6 +188,19 @@ class PERSCA_Plugin
     {
         $is_machine     = in_array((string) $format, $this->machine_date_formats(), true);
         $should_convert = ! $is_machine;
+
+        global $pagenow;
+        if ('options-general.php' === $pagenow && ('Y-m-d H:i:s' === (string) $format || 'Y-m-d H:i' === (string) $format)) {
+            $should_convert = true;
+        }
+
+        if ($should_convert && $this->is_woocommerce_context()) {
+            $format_str = (string) $format;
+            if ('Y-m-d' === $format_str || 'Y-m-d H:i:s' === $format_str || 'Y-m-d H:i' === $format_str) {
+                $should_convert = false;
+            }
+        }
+
         $context        = $is_machine ? 'standard_format' : 'display';
 
         return (bool) apply_filters(
@@ -197,6 +211,80 @@ class PERSCA_Plugin
             $context
         );
     }
+
+    /**
+     * Whether the current request is within a WooCommerce context.
+     *
+     * @return bool
+     */
+    private function is_woocommerce_context(): bool
+    {
+        if (! class_exists('WooCommerce') && ! defined('WC_VERSION')) {
+            return false;
+        }
+
+        // phpcs:disable WordPress.Security.NonceVerification.Recommended
+        $page      = isset($_GET['page']) ? sanitize_text_field(wp_unslash($_GET['page'])) : '';
+        $post_type = isset($_GET['post_type']) ? sanitize_text_field(wp_unslash($_GET['post_type'])) : '';
+        $action    = isset($_REQUEST['action']) ? sanitize_text_field(wp_unslash($_REQUEST['action'])) : '';
+        // phpcs:enable WordPress.Security.NonceVerification.Recommended
+
+        $wc_pages = [
+            'wc-reports',
+            'wc-admin',
+            'wc-settings',
+            'wc-status',
+            'wc-orders',
+            'wc-orders--shop_subscription',
+            'wc-admin-coupons',
+        ];
+
+        if (in_array($page, $wc_pages, true)) {
+            return true;
+        }
+
+        $wc_post_types = ['product', 'shop_order', 'shop_coupon', 'shop_order_refund'];
+
+        if (in_array($post_type, $wc_post_types, true)) {
+            return true;
+        }
+
+        if (0 === strpos($action, 'woocommerce_') || 0 === strpos($action, 'wc_')) {
+            return true;
+        }
+
+        if (function_exists('get_current_screen')) {
+            $screen = get_current_screen();
+
+            if ($screen) {
+                if (in_array($screen->post_type, $wc_post_types, true)) {
+                    return true;
+                }
+
+                if (false !== strpos((string) $screen->id, 'woocommerce')) {
+                    return true;
+                }
+
+                if (in_array($screen->id, ['edit-product_cat', 'edit-product_tag'], true)) {
+                    return true;
+                }
+            }
+        }
+
+        // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $post_id = isset($_GET['post']) ? absint($_GET['post']) : 0;
+
+        if ($post_id) {
+            $type = get_post_type($post_id);
+            if (in_array($type, $wc_post_types, true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+
 
     /**
      * Canonical output for a standard machine format.
