@@ -56,9 +56,54 @@
       if (dateStr) currentDate = new Date(dateStr);
     }
 
+    const closeGutenbergPopover = () => {
+      const escapeEvent = new KeyboardEvent('keydown', {
+        key: 'Escape',
+        code: 'Escape',
+        keyCode: 27,
+        which: 27,
+        bubbles: true,
+        cancelable: true
+      });
+      persianContainer.dispatchEvent(escapeEvent);
+      const popover = persianContainer.closest('.components-popover');
+      if (popover) {
+        popover.dispatchEvent(escapeEvent);
+      }
+      document.dispatchEvent(escapeEvent);
+
+      setTimeout(() => {
+        const isStillOpen = popover && document.body.contains(popover) && popover.style.display !== 'none';
+        if (isStillOpen || !popover) {
+          const toggle = document.querySelector(
+            '.editor-post-schedule__dialog-toggle[aria-expanded="true"], ' +
+            '.block-editor-post-schedule__dialog-toggle[aria-expanded="true"], ' +
+            '.edit-post-post-schedule__toggle[aria-expanded="true"], ' +
+            'button[aria-expanded="true"].editor-post-schedule__dialog-toggle'
+          );
+          if (toggle) {
+            toggle.click();
+          }
+        }
+      }, 50);
+    };
+
+    persianContainer.addEventListener('click', (e) => {
+      const closeBtn = e.target.closest('.block-editor-inspector-popover-header__action, .persian-calendar-close-btn');
+      if (closeBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        closeGutenbergPopover();
+      }
+    });
+
     new PersianCalendar(persianContainer, {
       selectedDate: currentDate,
       showTime: true,
+      title: 'انتشار',
+      showCloseButton: true,
+      closeButtonClass: 'components-button block-editor-inspector-popover-header__action is-small has-icon',
+      onClose: closeGutenbergPopover,
       onDateSelect: (dateInfo) => {
         if (window.wp && wp.data) {
           wp.data.dispatch('core/editor').editPost({ date: dateInfo.date.toISOString() });

@@ -187,6 +187,9 @@ final class PERSCA_Admin
             if ($key === 'enable_integration_woocommerce' && ! (class_exists('WooCommerce') || defined('WC_VERSION'))) {
                 $out[$key] = false;
             }
+            if ($key === 'enable_integration_acf' && ! (class_exists('ACF') || class_exists('acf') || function_exists('acf'))) {
+                $out[$key] = false;
+            }
         }
 
         // Disable Gutenberg calendar if Classic Editor is enabled
@@ -224,6 +227,7 @@ final class PERSCA_Admin
             'enable_integration_jet_smart_filters' => false,
             'enable_integration_edd' => false,
             'enable_integration_woocommerce' => false,
+            'enable_integration_acf' => false,
         ];
     }
 
@@ -402,6 +406,7 @@ final class PERSCA_Admin
         $jet_smart_filters_active = class_exists('Jet_Smart_Filters');
         $edd_active = class_exists('Easy_Digital_Downloads') || function_exists('EDD') || defined('EDD_VERSION');
         $woocommerce_active = class_exists('WooCommerce') || defined('WC_VERSION');
+        $acf_active = class_exists('ACF') || class_exists('acf') || function_exists('acf');
 
         $fields = [
             'enable_integration_jet_engine' => [
@@ -472,6 +477,16 @@ final class PERSCA_Admin
                 'disabled_by' => !$woocommerce_active ? [
                     'active'  => true,
                     'message' => __('To use this integration, WooCommerce plugin must be installed and active.', 'persian-calendar'),
+                ] : null,
+            ],
+            'enable_integration_acf' => [
+                'label' => __('Advanced Custom Fields (ACF) Integration', 'persian-calendar'),
+                'desc' => __('Enable Persian/Jalali calendar and date picker support in ACF Date Picker, Date Time Picker, and Time Picker fields.', 'persian-calendar'),
+                'icon' => 'dashicons-admin-plugins',
+                'image' => 'acf.png',
+                'disabled_by' => !$acf_active ? [
+                    'active'  => true,
+                    'message' => __('To use this integration, Advanced Custom Fields (ACF) plugin must be installed and active.', 'persian-calendar'),
                 ] : null,
             ],
         ];

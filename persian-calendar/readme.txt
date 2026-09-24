@@ -4,7 +4,7 @@ Tags: شمسی, Jalali, Calendar, Shamsi, Gutenberg
 Requires at least: 5.4
 Tested up to: 7.0
 Requires PHP: 7.2
-Stable tag: 1.5.0
+Stable tag: 1.5.1
 License: GPL2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,7 +25,7 @@ This plugin converts your WordPress website to the Jalali (Persian) calendar sys
 
 == Integrations ==
 
-This plugin features deep integration with Crocoblock JetPlugins, EDD, and WooCommerce to provide full Jalali calendar support:
+This plugin features deep integration with Crocoblock JetPlugins, WooCommerce, Easy Digital Downloads (EDD), and Advanced Custom Fields (ACF) to provide full Jalali calendar support:
 
 *   **JetEngine Integration:** 
     *   Adds Jalali date picker support for JetEngine Meta Fields (Date, Datetime-local, Time).
@@ -50,6 +50,12 @@ This plugin features deep integration with Crocoblock JetPlugins, EDD, and WooCo
     *   Full Shamsi (Jalali) calendar and date picker support across WooCommerce admin screens: Orders, Coupons, Product Sale schedules, Downloads, and Reports.
     *   Seamless Jalali date conversion for WooCommerce Flot reports and WooCommerce Analytics (React/D3) charts and tooltips.
     *   Automatic Jalali to Gregorian date normalization on form submission to preserve database integrity.
+*   **Advanced Custom Fields (ACF & ACF Pro) Integration:**
+    *   Full Jalali (Persian/Shamsi) calendar and date picker support for ACF Date Picker, Date Time Picker, and Time Picker fields.
+    *   Seamless compatibility with ACF Pro Repeaters, Flexible Content, Clone fields, and ACF Blocks in the Gutenberg editor.
+    *   Full support for ACF frontend forms created using `acf_form()`.
+    *   Guarantees 100% Gregorian date storage in the database (`wp_postmeta`) using standard ACF formats (`Ymd`, `Y-m-d H:i:s`, `H:i:s`) for optimal query performance, schema integrity, and compatibility.
+    *   Native support for ACF 6.8+ "Default to current date" setting.
 
 == Installation ==
 
@@ -64,6 +70,7 @@ This plugin features deep integration with Crocoblock JetPlugins, EDD, and WooCo
 Yes, this plugin provides full Jalali (Persian/Shamsi) calendar conversion and date picker compatibility for:
 * **Crocoblock JetPlugins:** JetBooking, JetAppointments Booking, JetEngine, JetFormBuilder, and JetSmartFilters.
 * **WooCommerce & Easy Digital Downloads (EDD):** Orders, coupons, discounts, sales schedules, and reports.
+* **Advanced Custom Fields (ACF & ACF Pro):** Date Picker, Date Time Picker, and Time Picker fields (including Repeaters, Flexible Content, Clone fields, and ACF Blocks).
 
 = Is this plugin compatible with all themes? =
 Yes, this plugin works with all WordPress themes.
@@ -82,6 +89,10 @@ No, the plugin is optimized and has minimal impact on performance.
 4. EDD reports
 
 == Changelog ==
+
+= 1.5.1 =
+* Added Advanced Custom Fields (ACF & ACF Pro) Integration: Jalali date picker for Date, Date Time, and Time Picker fields with full support for Repeaters, Flexible Content, Clone, ACF Blocks, and frontend acf_form().
+* Optimized Gutenberg calendar.
 
 = 1.5.0 =
 * Added JetAppointments Booking Integration: Full Jalali calendar support for JetAppointments Booking plugin including appointment schedules, backend timeline, calendars, and frontend booking forms.

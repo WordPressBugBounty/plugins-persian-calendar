@@ -69,6 +69,7 @@ class PERSCA_Plugin
                 'enable_integration_jet_smart_filters' => 'jet-smart-filters.php',
                 'enable_integration_edd'               => 'edd.php',
                 'enable_integration_woocommerce'       => 'woocommerce.php',
+                'enable_integration_acf'               => 'acf.php',
             ];
 
             require_once PERSCA_PLUGIN_DIR . 'integrate/persca-integration-helpers.php';
@@ -165,6 +166,8 @@ class PERSCA_Plugin
             'Y-m-d\TH:i:s\Z',
             'Y-m-d\TH:i:s.u\Z',
             'Y-m-d\TH:i:sP',
+            'Ymd',
+            'YmdHis',
         ];
 
         // Several of these constants share the same value.

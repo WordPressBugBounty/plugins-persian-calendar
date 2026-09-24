@@ -58,7 +58,8 @@
 }
 
 /* Close Button */
-.persian-calendar-close-btn {
+.persian-calendar-close-btn,
+.persian-calendar-header-actions .block-editor-inspector-popover-header__action.has-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -68,22 +69,28 @@
   cursor: pointer;
   padding: 0;
   width: 24px;
+  min-width: 24px;
   height: 24px;
   color: #1e1e1e;
 }
 
-.persian-calendar-close-btn:hover {
-  background: none;
+.persian-calendar-close-btn:hover,
+.persian-calendar-header-actions .block-editor-inspector-popover-header__action.has-icon:hover {
+  background: rgba(0, 0, 0, 0.05);
   color: #3858e9;
 }
 
-.persian-calendar-close-btn:focus {
+.persian-calendar-close-btn:focus,
+.persian-calendar-header-actions .block-editor-inspector-popover-header__action.has-icon:focus {
   box-shadow: 0 0 0 var(--wp-admin-border-width-focus, 2px) #3858e9;
   outline: 3px solid transparent;
 }
 
-.persian-calendar-close-btn svg {
+.persian-calendar-close-btn svg,
+.persian-calendar-header-actions .block-editor-inspector-popover-header__action.has-icon svg {
   fill: currentColor;
+  width: 24px;
+  height: 24px;
 }
 
 /* Time Picker */

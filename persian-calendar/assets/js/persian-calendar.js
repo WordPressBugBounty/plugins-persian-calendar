@@ -232,9 +232,11 @@
         rangeEnd: options.rangeEnd || null,
         altInput: (typeof options.altInput === 'boolean') ? options.altInput : false,
         altFormat: options.altFormat || null,
+        title: options.title || null,
         onClose: (typeof options.onClose === 'function') ? options.onClose : () => { },
         theme: options.theme || 'light', // 'light' or 'dark'
         showCloseButton: (typeof options.showCloseButton === 'boolean') ? options.showCloseButton : this.isInput,
+        closeButtonClass: options.closeButtonClass || '',
         isTwoMonths: (typeof options.isTwoMonths === 'boolean') ? options.isTwoMonths : false,
         // Preserve any extra custom options not explicitly handled above
         filterDate: options.filterDate || null,
@@ -332,7 +334,7 @@
       
       const title = document.createElement('div');
       title.className = 'persian-calendar-title';
-      title.textContent = this.isInput ? 'انتخاب تاریخ' : 'تقویم';
+      title.textContent = this.options.title || (this.isInput ? 'انتخاب تاریخ' : 'تقویم');
       header.appendChild(title);
 
       const actions = document.createElement('div');
@@ -347,9 +349,9 @@
       if (this.options.showCloseButton) {
         const closeBtn = document.createElement('button');
         closeBtn.type = 'button';
-        closeBtn.className = 'persian-calendar-close-btn';
+        closeBtn.className = (this.options.closeButtonClass ? this.options.closeButtonClass + ' ' : '') + 'persian-calendar-close-btn';
         closeBtn.setAttribute('aria-label', 'بستن');
-        closeBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><path d="M12 13.06l3.712 3.713 1.061-1.06L13.061 12l3.712-3.712-1.06-1.06L12 10.938 8.288 7.227l-1.061 1.06L10.939 12l-3.712 3.712 1.06 1.061L12 13.061z"></path></svg>';
+        closeBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="24" height="24" aria-hidden="true" focusable="false"><path d="M12 13.06l3.712 3.713 1.061-1.06L13.061 12l3.712-3.712-1.06-1.06L12 10.938 8.288 7.227l-1.061 1.06L10.939 12l-3.712 3.712 1.06 1.061L12 13.061z"></path></svg>';
         actions.appendChild(closeBtn);
       }
 
@@ -750,9 +752,12 @@
     }
 
     close() {
-      if (!this.isInput) return;
-      if (this.popover.classList.contains('active')) {
-        this.popover.classList.remove('active');
+      if (this.isInput) {
+        if (this.popover && this.popover.classList.contains('active')) {
+          this.popover.classList.remove('active');
+        }
+      }
+      if (typeof this.options.onClose === 'function') {
         this.options.onClose();
       }
     }
@@ -1104,6 +1109,25 @@
             return isNaN(d.getTime()) ? null : d;
         }
 
+        // Handle 8-digit compact dates (e.g. YYYYMMDD in ACF date_picker)
+        if (/^\d{8}$/.test(normalizedStr)) {
+            const y = parseInt(normalizedStr.substring(0, 4), 10);
+            const m = parseInt(normalizedStr.substring(4, 6), 10);
+            const d = parseInt(normalizedStr.substring(6, 8), 10);
+            if (m >= 1 && m <= 12 && d >= 1 && d <= 31) {
+                if (y >= 1300 && y <= 1500) {
+                    const g = jalaliToGregorian(y, m, d);
+                    if (g && g[0] > 0) {
+                        const gd = new Date(g[0], g[1] - 1, g[2]);
+                        return isNaN(gd.getTime()) ? null : gd;
+                    }
+                    return null;
+                }
+                const gd = new Date(y, m - 1, d);
+                return isNaN(gd.getTime()) ? null : gd;
+            }
+        }
+
         const parts = normalizedStr.split(/[-T \/:]/);
         if (parts.length >= 3) {
             let y, m, d;
@@ -1212,7 +1236,7 @@
                 }
                 const parsed = window.PersianCalendarIntegrations.parseLocalDate(valStr);
                 if (parsed && !isNaN(parsed.getTime())) {
-                    if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(valStr) || /^\d{1,2}[-/]\d{1,2}[-/]\d{4}/.test(valStr) || /^\d{9,13}$/.test(valStr)) {
+                    if (/^\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(valStr) || /^\d{1,2}[-/]\d{1,2}[-/]\d{4}/.test(valStr) || /^\d{8,13}$/.test(valStr)) {
                         $(this).data('persian-gregorian-val', valStr);
                         window.PersianCalendarIntegrations.updateDisplayVal($(this), valStr);
                         return;
@@ -1228,6 +1252,17 @@
     setupJalaliTimePicker: function($visibleInput, $altInput, $) {
         if ($visibleInput.data('persian-timepicker-init')) {
             return true;
+        }
+        if ($visibleInput.data('persian-calendar-init')) {
+            const oldPopup = $visibleInput.data('persian-calendar-popup');
+            if (oldPopup && typeof oldPopup.remove === 'function') {
+                oldPopup.remove();
+            }
+            $visibleInput.removeData('persian-calendar-init');
+            $visibleInput.removeData('persian-calendar-popup');
+            $visibleInput.removeData('persian-calendar-instance');
+            $visibleInput.removeClass('persian-calendar-input');
+            $visibleInput.off('click.persianCalendar focus.persianCalendar');
         }
         $visibleInput.data('persian-timepicker-init', true);
 
@@ -1342,7 +1377,10 @@
             const scrollTop = $(window).scrollTop();
             const scrollLeft = $(window).scrollLeft();
             let top = offset.top + inputHeight + 5;
-            let left = offset.left;
+            const isRtl = $('html').attr('dir') === 'rtl' || $('body').css('direction') === 'rtl';
+            let left = isRtl
+                ? offset.left + $visibleInput.outerWidth() - popupWidth
+                : offset.left;
             if (top + popupHeight > scrollTop + windowHeight) {
                 if (offset.top - popupHeight - 5 > scrollTop) {
                     top = offset.top - popupHeight - 5;
@@ -1544,6 +1582,9 @@
         if ($visibleInput.data('persian-calendar-init')) {
             return true;
         }
+        if ($visibleInput.data('persian-timepicker-init') || $visibleInput.hasClass('persian-time-input') || $visibleInput.closest('.acf-time-picker, .acf-field-time-picker, [data-type="time_picker"]').length > 0) {
+            return false;
+        }
         $visibleInput.data('persian-calendar-init', true);
         $visibleInput.data('persian-show-time', showTime);
         $visibleInput.attr('data-persian-show-time', showTime ? 'true' : 'false');
@@ -1606,7 +1647,7 @@
 
         const initialVal = $altInput ? $altInput.val() : $visibleInput.val();
         if (initialVal) {
-            if (/^\d{4}-\d{2}-\d{2}/.test(initialVal)) {
+            if (/^\d{4}-\d{2}-\d{2}/.test(initialVal) || /^\d{8}$/.test(initialVal)) {
                 $visibleInput.data('persian-gregorian-val', initialVal);
             }
             window.PersianCalendarIntegrations.updateDisplayVal($visibleInput, initialVal, $altInput);
@@ -1703,7 +1744,10 @@
             const scrollLeft = $(window).scrollLeft();
 
             let top = offset.top + inputHeight + 5;
-            let left = offset.left;
+            const isRtl = $('html').attr('dir') === 'rtl' || $('body').css('direction') === 'rtl';
+            let left = isRtl
+                ? offset.left + $visibleInput.outerWidth() - popupWidth
+                : offset.left;
 
             if (top + popupHeight > scrollTop + windowHeight) {
                 if (offset.top - popupHeight - 5 > scrollTop) {
