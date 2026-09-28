@@ -2,9 +2,9 @@
 Contributors: mohammadr3z
 Tags: شمسی, Jalali, Calendar, Shamsi, Gutenberg
 Requires at least: 5.4
-Tested up to: 7.0
+Tested up to: 7.1
 Requires PHP: 7.2
-Stable tag: 1.5.1
+Stable tag: 1.5.2
 License: GPL2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -89,6 +89,9 @@ No, the plugin is optimized and has minimal impact on performance.
 4. EDD reports
 
 == Changelog ==
+
+= 1.5.2 =
+* Fix: Excluded TinyMCE toolbar buttons (.mce-btn button) and Quicktags DFW (.qt-dfw) from dashboard font styling to preserve default editor fonts and icons.
 
 = 1.5.1 =
 * Added Advanced Custom Fields (ACF & ACF Pro) Integration: Jalali date picker for Date, Date Time, and Time Picker fields with full support for Repeaters, Flexible Content, Clone, ACF Blocks, and frontend acf_form().

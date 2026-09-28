@@ -12,7 +12,7 @@
  * consistent Persian typography across all admin plugins
  * without needing to enumerate every element type.
  */
-html[dir="rtl"] *:not(pre):not(code):not(kbd):not(svg):not(#newcontent):not([class*="fa-"]):not([class*="bi-"]):not([class*="ion-"]):not([class*="material"]):not([class*="icon"]):not([class*="glyphicon"]):not([class*="CodeMirror"]):not([class*="cm-"]):not([class*="monaco-"]) {
+html[dir="rtl"] *:not(pre):not(code):not(kbd):not(svg):not(#newcontent):not([class*="fa-"]):not([class*="bi-"]):not([class*="ion-"]):not([class*="material"]):not([class*="icon"]):not([class*="glyphicon"]):not([class*="CodeMirror"]):not([class*="cm-"]):not([class*="monaco-"]):not(.mce-toolbar):not(.mce-toolbar *):not(.qt-dfw):not(.qt-dfw *):not([class*="mce-"]) {
     font-family: 'VazirmatnVF', sans-serif !important;
 }
 
@@ -41,6 +41,12 @@ html[dir="rtl"] .monaco-editor * {
 
 /* Prevent SVG content from inheriting custom fonts */
 svg, svg * {
+    font-family: inherit !important;
+}
+
+/* Exclude TinyMCE toolbar buttons and Quicktags DFW from custom font */
+.mce-toolbar .mce-btn button,
+.qt-dfw {
     font-family: inherit !important;
 }
 
