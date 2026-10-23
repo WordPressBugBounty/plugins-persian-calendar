@@ -88,18 +88,24 @@ jQuery(document).ready(function () {
     });
 
     jQuery('#the-list').on('click', '.editinline', function () {
-        const tr = jQuery(this).closest('td');
-        const year = tr.find('.aa').text();
-        if (year > 1700) {
-            const month = tr.find('.mm').text();
-            const day = tr.find('.jj').text();
-            const hour = tr.find('.hh').text();
-            const minu = tr.find('.mn').text();
-            const date = gregorian_to_jalali(year, month, day);
-            jQuery('.inline-edit-date .timestamp-wrap').hide();
-            jQuery('.jalali').remove();
-            jQuery('.inline-edit-date legend').after(jalaliTimestampDiv(date[0], date[1], date[2], hour, minu));
-        }
+        // Read date data from the row's hidden inline_data before the DOM changes.
+        const row = jQuery(this).closest('tr');
+        const year = row.find('.aa').text();
+        const month = row.find('.mm').text();
+        const day = row.find('.jj').text();
+        const hour = row.find('.hh').text();
+        const minu = row.find('.mn').text();
+
+        // Defer injection until after inlineEditPost.edit() (and any WooCommerce
+        // overrides) finish building and populating the inline-edit form.
+        setTimeout(function () {
+            if (year > 1700) {
+                const date = gregorian_to_jalali(year, month, day);
+                jQuery('.inline-edit-date .timestamp-wrap').hide();
+                jQuery('.jalali').remove();
+                jQuery('.inline-edit-date legend').after(jalaliTimestampDiv(date[0], date[1], date[2], hour, minu));
+            }
+        }, 0);
     });
 
     jQuery('#timestampdiv,.inline-edit-date').on('keyup', '#hha', function () {

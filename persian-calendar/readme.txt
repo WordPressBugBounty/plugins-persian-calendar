@@ -91,6 +91,8 @@ No, the plugin is optimized and has minimal impact on performance.
 == Changelog ==
 
 = 1.5.2 =
+* Admin Timewrap: Fixed inline edit date display timing in post and product quick edit to properly render Jalali dates after WordPress and WooCommerce inline edit handlers execute.
+* WooCommerce: Fixed Jalali date picker for product sale schedule in product edit and inline edit.
 * Fix: Excluded TinyMCE toolbar buttons (.mce-btn button) and Quicktags DFW (.qt-dfw) from dashboard font styling to preserve default editor fonts and icons.
 
 = 1.5.1 =

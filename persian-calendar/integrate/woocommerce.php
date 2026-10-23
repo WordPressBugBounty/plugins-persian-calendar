@@ -198,6 +198,8 @@ function persca_wc_add_dependencies(): void
             'woocommerce_settings',
             'wc-orders',
             'woocommerce_admin',
+            'woocommerce_quick_edit',
+            'inline-edit-post',
             // The Analytics single page app: it must never boot before the
             // bridge that rewrites its REST date ranges.
             'wc-admin-app',

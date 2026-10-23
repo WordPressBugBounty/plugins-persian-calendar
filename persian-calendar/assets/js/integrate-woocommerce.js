@@ -81,18 +81,91 @@
     /**
      * WooCommerce date field selectors.
      *
-     * .date-picker           order date, coupon expiry, download access expiry
-     * .date-picker-field     product & variation sale schedule dates
-     * .range_datepicker      legacy report custom range (start_date / end_date)
+     * .date-picker                     order date, coupon expiry, download access expiry
+     * .date-picker-field               product & variation sale schedule dates
+     * .range_datepicker                legacy report custom range (start_date / end_date)
+     * .sale_price_dates_fields input   product edit & quick edit sale schedule dates
+     * #_sale_price_dates_from/to       sale schedule from / to inputs
+     * variable_sale_price_dates_...    variation sale schedule dates
      */
-    var WC_DATE_SELECTOR = 'input.date-picker, input.date-picker-field, input.range_datepicker';
+    var WC_DATE_SELECTOR = [
+        'input.date-picker',
+        'input.date-picker-field',
+        'input.range_datepicker',
+        '.sale_price_dates_fields input:not([type="hidden"])',
+        'input#_sale_price_dates_from',
+        'input#_sale_price_dates_to',
+        'input[name="_sale_price_dates_from"]',
+        'input[name="_sale_price_dates_to"]',
+        'input[name^="variable_sale_price_dates_"]:not([type="hidden"])'
+    ].join(', ');
+
+    function isTemplateRow($el) {
+        if (!$el || !$el.length) {
+            return false;
+        }
+        // The quick-edit template row lives inside #inlineedit or tr#inline-edit OUTSIDE #the-list
+        return $el.closest('#inlineedit, tr#inline-edit').length > 0 &&
+               $el.closest('#the-list').length === 0;
+    }
 
     function isWooDateField($el) {
-        return $el.is(WC_DATE_SELECTOR);
+        if (!$el || !$el.length || $el.is('[type="hidden"]') || isTemplateRow($el)) {
+            return false;
+        }
+        return $el.is(WC_DATE_SELECTOR) ||
+               $el.is('input[name*="sale_price_dates"]') ||
+               $el.closest('.sale_price_dates_fields').length > 0;
+    }
+
+    function repositionPopupAtInput($popup, $input) {
+        if (!$popup || !$popup.length || !$input || !$input.length) {
+            return;
+        }
+        var offset = $input.offset();
+        if (!offset || (offset.top === 0 && offset.left === 0 && !$input.is(':visible'))) {
+            return;
+        }
+
+        var inputHeight = $input.outerHeight() || 30;
+        var inputWidth = $input.outerWidth() || 120;
+        var popupHeight = $popup.outerHeight() || 300;
+        var popupWidth = $popup.outerWidth() || 280;
+        var windowHeight = $(window).height();
+        var windowWidth = $(window).width();
+        var scrollTop = $(window).scrollTop();
+        var scrollLeft = $(window).scrollLeft();
+
+        var isRtl = $('html').attr('dir') === 'rtl' || $('body').css('direction') === 'rtl';
+
+        var left = isRtl ? (offset.left + inputWidth - popupWidth) : offset.left;
+        if (left + popupWidth > scrollLeft + windowWidth) {
+            left = scrollLeft + windowWidth - popupWidth - 15;
+        }
+        if (left < scrollLeft + 15) {
+            left = scrollLeft + 15;
+        }
+
+        var top = offset.top + inputHeight + 5;
+        if (top + popupHeight > scrollTop + windowHeight) {
+            if (offset.top - popupHeight - 5 > scrollTop) {
+                top = offset.top - popupHeight - 5;
+            }
+        }
+
+        $popup.css({
+            top: top + 'px',
+            left: left + 'px',
+            position: 'absolute',
+            zIndex: 999999
+        });
     }
 
     function attachJalali($input) {
-        if (!window.PersianCalendarIntegrations) {
+        if (!window.PersianCalendarIntegrations || !$input || !$input.length) {
+            return false;
+        }
+        if ($input.is('[type="hidden"]') || isTemplateRow($input)) {
             return false;
         }
         if ($input.data('persian-calendar-init')) {
@@ -100,16 +173,27 @@
         }
 
         // Tear down any jQuery UI picker WooCommerce already attached.
-        if ($input.hasClass('hasDatepicker') && originalDatepicker) {
-            try {
-                originalDatepicker.call($input, 'destroy');
-            } catch (e) {}
+        if ($input.hasClass('hasDatepicker')) {
+            if (originalDatepicker) {
+                try {
+                    originalDatepicker.call($input, 'destroy');
+                } catch (e) {}
+            }
             $input.removeClass('hasDatepicker');
+            $input.removeData('datepicker');
+            $input.unbind('.datepicker');
         }
 
         // All WooCommerce pickers are date-only; the order screen keeps separate
         // hour/minute inputs, so no time component is needed here.
-        return window.PersianCalendarIntegrations.setupJalaliDatePicker($input, null, false, $);
+        var res = window.PersianCalendarIntegrations.setupJalaliDatePicker($input, null, false, $);
+
+        var ph = $input.attr('placeholder');
+        if (ph && ph.indexOf('YYYY-MM-DD') !== -1) {
+            $input.attr('placeholder', ph.replace('YYYY-MM-DD', 'YYYY/MM/DD'));
+        }
+
+        return res;
     }
 
     var customDatepicker = function (options) {
@@ -122,6 +206,9 @@
 
         return this.each(function () {
             var $input = $(this);
+            if (isTemplateRow($input)) {
+                return;
+            }
             if (isWooDateField($input)) {
                 attachJalali($input);
             } else if (originalDatepicker) {
@@ -168,6 +255,9 @@
         var $ctx = context ? $(context) : $(document);
         $ctx.find(WC_DATE_SELECTOR).each(function () {
             var $input = $(this);
+            if (isTemplateRow($input)) {
+                return;
+            }
             if (!$input.data('persian-calendar-init')) {
                 attachJalali($input);
             }
@@ -2525,6 +2615,87 @@
                 }, 30);
             }
         );
+
+        // When clicking schedule link in product edit, make sure fields are initialized
+        $(document.body).on('click', '.sale_schedule', function () {
+            var $wrap = $(this).closest('.price_options, .form-field, p, div').find('.sale_price_dates_fields');
+            $wrap.show();
+            setTimeout(function () {
+                scanDateFields($wrap.length ? $wrap : document);
+            }, 30);
+        });
+
+        // When cancelling schedule, clear both visible and hidden alt inputs
+        $(document.body).on('click', '.cancel_sale_schedule', function () {
+            var $wrap = $(this).closest('.sale_price_dates_fields');
+            $wrap.find('input').val('').data('persian-gregorian-val', '');
+            $wrap.hide();
+        });
+
+        // Quick edit (.editinline) opens the inline edit row on product list
+        $(document.body).on('click', '.editinline', function () {
+            var $tr = $(this).closest('tr');
+            setTimeout(function () {
+                var $editRow = $tr.next('tr.inline-edit-row');
+                if (!$editRow.length) {
+                    $editRow = $('#the-list tr.inline-edit-row:visible');
+                }
+                if (!$editRow.length) {
+                    return;
+                }
+
+                // If fields were cloned from a template that had old data, clean them
+                $editRow.find(WC_DATE_SELECTOR).each(function () {
+                    var $in = $(this);
+                    var oldPopup = $in.data('persian-popup');
+                    if (oldPopup && (!oldPopup.closest('body').length || (oldPopup.data('persian-input-owner') && oldPopup.data('persian-input-owner')[0] !== this))) {
+                        $in.removeData('persian-calendar-init');
+                        $in.removeData('persian-popup');
+                        $in.removeAttr('data-persian-calendar-init');
+                        $in.off('click focus');
+                    }
+                    if ($in.hasClass('hasDatepicker')) {
+                        $in.removeClass('hasDatepicker').removeData('datepicker').unbind('.datepicker');
+                    }
+                    var $alt = $in.next('input[type="hidden"]');
+                    if ($alt.length && ($alt.attr('name') === '_sale_price_dates_from' || $alt.attr('name') === '_sale_price_dates_to' || ($in.attr('name') && $alt.attr('name') === $in.attr('name')))) {
+                        if (!$in.attr('name')) {
+                            $in.attr('name', $alt.attr('name'));
+                        }
+                        $alt.remove();
+                    }
+                });
+
+                scanDateFields($editRow);
+
+                // Also ensure existing values are converted to Jalali display
+                $editRow.find(WC_DATE_SELECTOR).each(function () {
+                    var $in = $(this);
+                    var $alt = $in.next('input[type="hidden"]');
+                    var val = ($alt.length && $alt.val()) || $in.val();
+                    if (val && window.PersianCalendarIntegrations) {
+                        window.PersianCalendarIntegrations.updateDisplayVal($in, val, $alt);
+                    }
+                });
+            }, 50);
+        });
+
+        // Event delegation safety net: initialize Jalali on any date field that receives focus or click
+        $(document.body).on('focusin click', WC_DATE_SELECTOR, function () {
+            var $el = $(this);
+            if (isTemplateRow($el)) {
+                return;
+            }
+            if (!$el.data('persian-calendar-init') && isWooDateField($el)) {
+                attachJalali($el);
+            }
+            setTimeout(function () {
+                var popup = $el.data('persian-popup');
+                if (popup && popup.is(':visible')) {
+                    repositionPopupAtInput(popup, $el);
+                }
+            }, 10);
+        });
     });
 
     $(document).ajaxComplete(function () {
