@@ -4,7 +4,7 @@ Tags: شمسی, Jalali, Calendar, Shamsi, Gutenberg
 Requires at least: 5.4
 Tested up to: 7.1
 Requires PHP: 7.2
-Stable tag: 1.5.2
+Stable tag: 1.5.3
 License: GPL2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -89,6 +89,9 @@ No, the plugin is optimized and has minimal impact on performance.
 4. EDD reports
 
 == Changelog ==
+
+= 1.5.3 =
+* Fix: Fixed admin menu icon conflicts with third-party themes and plugins.
 
 = 1.5.2 =
 * Admin Timewrap: Fixed inline edit date display timing in post and product quick edit to properly render Jalali dates after WordPress and WooCommerce inline edit handlers execute.
