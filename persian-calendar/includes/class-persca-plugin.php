@@ -520,12 +520,12 @@ class PERSCA_Plugin
      * WordPress core hardcodes `__( 'g:i a' )` in WP_Posts_List_Table. Intercepting
      * it ensures post list tables render time in 24-hour format (H:i).
      *
-     * @param string $translated Translated text.
-     * @param string $text       Original text.
-     * @param string $domain     Text domain.
-     * @return string
+     * @param string|null $translated Translated text.
+     * @param string|null $text       Original text.
+     * @param string|null $domain     Text domain.
+     * @return string|null
      */
-    public function force_admin_post_time_24h(string $translated, string $text, string $domain): string
+    public function force_admin_post_time_24h($translated, $text = '', $domain = 'default')
     {
         if ('default' === $domain && ('g:i a' === $text || 'g:i A' === $text)) {
             return 'H:i';
