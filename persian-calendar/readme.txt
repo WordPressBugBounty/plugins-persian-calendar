@@ -4,7 +4,7 @@ Tags: شمسی, Jalali, Calendar, Shamsi, Gutenberg
 Requires at least: 5.4
 Tested up to: 7.1
 Requires PHP: 7.2
-Stable tag: 1.5.4
+Stable tag: 1.5.5
 License: GPL2
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -89,6 +89,10 @@ No, the plugin is optimized and has minimal impact on performance.
 4. EDD reports
 
 == Changelog ==
+
+= 1.5.5 =
+* Fix: Fixed date picker falling beneath Elementor Off-Canvas widget due to container z-index stacking context.
+* Fix: Fixed Elementor Popups closing unexpectedly when selecting a date in JetFormBuilder and frontend forms by registering the calendar container with Elementor's DialogsManager outside-click ignore list and deferring popup dismissal.
 
 = 1.5.4 =
 * Fix: Fixed fatal TypeError in gettext filter callback when third-party plugins pass null values (resolves incompatibility with WP Bulk Delete).

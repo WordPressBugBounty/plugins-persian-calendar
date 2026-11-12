@@ -1351,7 +1351,7 @@
 
         let $popup = $visibleInput.data('persian-time-popup');
         if (!$popup) {
-            $popup = $('<div class="persian-calendar-popup persian-time-popup" style="display:none; position:absolute; z-index:999999; pointer-events:auto;"></div>');
+            $popup = $('<div class="persian-calendar-popup persian-time-popup flatpickr-calendar" style="display:none; position:absolute; z-index:2147483647; pointer-events:auto;"></div>');
             $popup.on('click mousedown mouseup pointerdown pointerup touchstart touchend', function(e) {
                 e.stopPropagation();
             });
@@ -1655,7 +1655,7 @@
 
         let $popup = $visibleInput.data('persian-popup');
         if (!$popup) {
-            $popup = $('<div class="persian-calendar-popup" style="display:none; position:absolute; z-index:999999; pointer-events:auto; background:#fff; box-shadow:0 4px 20px rgba(0,0,0,0.15); border:1px solid #edf2f7; border-radius:8px; padding:15px; width:280px;"></div>');
+            $popup = $('<div class="persian-calendar-popup flatpickr-calendar" style="display:none; position:absolute; z-index:2147483647; pointer-events:auto; background:#fff; box-shadow:0 4px 20px rgba(0,0,0,0.15); border:1px solid #edf2f7; border-radius:8px; padding:15px; width:280px;"></div>');
             $popup.on('click mousedown mouseup pointerdown pointerup touchstart touchend', function(e) {
                 e.stopPropagation();
             });
@@ -1809,7 +1809,9 @@
                     }
 
                     if (!showTime || dateInfo.isDaySelect) {
-                        hidePopup();
+                        setTimeout(function() {
+                            hidePopup();
+                        }, 50);
                     }
                 }
             });
@@ -1835,4 +1837,21 @@
         return true;
     }
   };
+
+  // Prevent Elementor Popups from closing when interacting with Persian Calendar popups
+  if (typeof jQuery !== 'undefined') {
+    jQuery(document).on('elementor/popup/show', function (event, id, instance) {
+      if (instance && typeof instance.getModal === 'function') {
+        try {
+          const modal = instance.getModal();
+          if (modal && typeof modal.getSettings === 'function' && typeof modal.setSettings === 'function') {
+            const cur = modal.getSettings('hide.ignore') || '';
+            if (cur.indexOf('persian-calendar') === -1) {
+              modal.setSettings('hide.ignore', (cur ? cur + ', ' : '') + '.persian-calendar-popup, .persian-time-popup, .persian-calendar-wrapper, .flatpickr-calendar');
+            }
+          }
+        } catch (e) {}
+      }
+    });
+  }
 })();
